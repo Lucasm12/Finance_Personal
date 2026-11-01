@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="traco" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6ee7b7"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+    <radialGradient id="brilho" cx="0.5" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#10b981" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#06080a"/>
+  <rect width="64" height="64" rx="14" fill="url(#brilho)"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#34d399" stroke-opacity="0.35" stroke-width="2"/>
+  <path d="M14 18v28h12M32 46V18l9 14 9-14v28" fill="none" stroke="url(#traco)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

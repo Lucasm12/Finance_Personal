@@ -1,2 +1,365 @@
-# Finance_Personal
-Finance_Personal
+# Lucas Marques Dev
+
+Plataforma com módulos. Depois do login, o usuário escolhe em qual entrar (atalhos: teclas 1, 2...),
+e dentro de cada módulo pode trocar de módulo tocando no nome dele no topo da tela.
+
+| Módulo | Endereço | Situação |
+|---|---|---|
+| **Financeiro** | `/financeiro` | Controle das contas fixas mensais da família: você cadastra as contas uma vez (os "modelos") e o app monta a lista de cada mês sozinho, com checkbox de pago, totais automáticos, parcelas, histórico, exportação, rendas e caixinhas de economia. |
+| **Triathlon** | `/triathlon` | Treinos de natação, ciclismo e corrida (registro manual ou arquivos do relógio), agenda semanal com metas por modalidade, carga de treino e forma, evolução de volume e ritmos, corpo (peso, IMC, composição e medidas), alimentação, provas-alvo. Veja [a seção do Triathlon](#módulo-triathlon). |
+
+Os módulos ficam em [src/modulos.ts](src/modulos.ts). Para criar um novo: registre-o ali, crie um layout
+com `LayoutModulo` (veja [LayoutTriathlon.tsx](src/components/layout/LayoutTriathlon.tsx)) e adicione as rotas em [App.tsx](src/App.tsx).
+
+**Stack:** React + Vite + TypeScript + Tailwind CSS + shadcn/ui · Supabase (Auth, Postgres, RLS) · deploy na Vercel.
+
+---
+
+## 1. Criar o banco no Supabase
+
+1. Crie um projeto em [supabase.com](https://supabase.com) (plano gratuito serve).
+2. No painel, abra **SQL Editor → New query**, cole e rode **nesta ordem**:
+   1. [supabase/migrations/20261031120000_estrutura.sql](supabase/migrations/20261031120000_estrutura.sql) — tabelas, índices e RLS
+   2. [supabase/migrations/20261031120100_funcoes.sql](supabase/migrations/20261031120100_funcoes.sql) — funções e views de totais
+   3. [supabase/migrations/20261031130000_lembretes_email.sql](supabase/migrations/20261031130000_lembretes_email.sql) — lembrete por e-mail (veja abaixo)
+   4. [supabase/migrations/20261031140000_rendas_economia.sql](supabase/migrations/20261031140000_rendas_economia.sql) — rendas e caixinhas (aba Economia)
+   5. [supabase/migrations/20261031150000_triathlon.sql](supabase/migrations/20261031150000_triathlon.sql) — módulo Triathlon
+   6. [supabase/migrations/20261101120000_corpo.sql](supabase/migrations/20261101120000_corpo.sql) — bioimpedância e medidas nas pesagens, plano de peso com meta semanal (e remove a antiga integração com o Strava). Pode rodar de novo sem problema
+   7. [supabase/migrations/20261101130000_agenda_treinos.sql](supabase/migrations/20261101130000_agenda_treinos.sql) — Agenda: metas semanais e treinos planejados. Pode rodar de novo sem problema
+   8. [supabase/migrations/20261101140000_musculacao.sql](supabase/migrations/20261101140000_musculacao.sql) — Musculação: rotinas de força, exercícios de cada treino agendado e séries registradas. Pode rodar de novo sem problema
+   9. [supabase/migrations/20261101150000_seguranca.sql](supabase/migrations/20261101150000_seguranca.sql) — **segurança**: cadastro só para e-mails autorizados, proteção do lembrete, limites de tamanho, auditoria e exclusão de conta. Veja [SEGURANCA.md](SEGURANCA.md)
+
+   > Se usar a Supabase CLI: `supabase link --project-ref SEU-REF` e depois `supabase db push`.
+
+3. Pegue as chaves em **Project Settings → API** (ou botão **Connect**):
+   - **Project URL** → `VITE_SUPABASE_URL`
+   - **anon / publishable key** → `VITE_SUPABASE_ANON_KEY`
+
+   Nunca use a `service_role` / `secret` key no app.
+
+## 2. Rodar no computador
+
+Requer Node.js 22.12 ou mais novo.
+
+```bash
+cp .env.example .env.local     # e preencha as duas variáveis
+npm install
+npm run dev                    # abre em http://localhost:5173
+```
+
+## 3. Publicar na Vercel
+
+**Opção A — pelo GitHub (recomendado):**
+
+```bash
+git init
+git add .
+git commit -m "Contas do Mês"
+# crie um repositório vazio no GitHub e:
+git remote add origin https://github.com/SEU-USUARIO/contas-do-mes.git
+git push -u origin main
+```
+
+Na Vercel: **Add New → Project →** importe o repositório. O framework (Vite) é detectado
+sozinho pelo [vercel.json](vercel.json). Em **Environment Variables** adicione
+`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` e clique em **Deploy**.
+
+**Opção B — pela linha de comando:**
+
+```bash
+npx vercel            # primeira vez: responde as perguntas
+npx vercel env add VITE_SUPABASE_URL
+npx vercel env add VITE_SUPABASE_ANON_KEY
+npx vercel --prod
+```
+
+> Se você instalou a integração **Supabase** pelo marketplace da Vercel, as variáveis
+> `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` criadas por ela também funcionam.
+
+### Usuários
+
+A tela de login só entra: não tem "Criar conta" nem "Esqueci minha senha". Os usuários são
+gerenciados no painel do Supabase:
+
+- **Criar:** Authentication → Users → **Add user → Create new user**, com e-mail e senha, marcando
+  **Auto Confirm User**.
+- **Trocar a senha de alguém** (SQL Editor):
+  ```sql
+  update auth.users
+     set encrypted_password = extensions.crypt('NovaSenha123', extensions.gen_salt('bf'))
+   where email = 'pessoa@exemplo.com';
+  ```
+- **Fechar o cadastro público:** Authentication → Sign In / Providers → desligue
+  **Allow new users to sign up**. A migração 9 também barra no banco qualquer e-mail fora da lista
+  `privado.cadastro_permitido` — para criar alguém novo, libere antes o e-mail (SQL Editor):
+  ```sql
+  insert into privado.cadastro_permitido (email) values ('pessoa@exemplo.com');
+  ```
+- **Meus dados e privacidade** (menu do usuário): mostra o que o app guarda e para quê, baixa todos os dados
+  em JSON e exclui a conta com tudo dela (LGPD).
+
+Depois do deploy, coloque o endereço da Vercel em **Authentication → URL Configuration → Site URL**.
+
+---
+
+## Como usar
+
+| Tela | O que faz |
+|---|---|
+| **Mês** | Escolha o mês nas setas. **Gerar mês** cria os lançamentos a partir das contas ativas (pode clicar de novo: não duplica, só adiciona o que falta). Marque como pago no checkbox, toque na conta para mudar o valor **só daquele mês**, copie o código de pagamento com um clique. Contas vencidas ficam em vermelho. Busca e filtro por responsável e situação. Exporta para Excel ou CSV. |
+| **Economia** | Balanço do mês (renda − contas − guardado = sobra livre). **Rendas**: fixas (salário — entram sozinhas no "Gerar mês") ou avulsas (13º, freela), com checkbox de recebido. **Caixinhas**: objetivos de economia com meta opcional, valor planejado por mês, data alvo, botões Guardar/Retirar, extrato e previsão de quando a meta é atingida. |
+| **Contas** | Cadastro dos modelos, agrupados por categoria: valor padrão, dia de vencimento, código de pagamento (boleto/PIX/contrato), responsável e parcelamento. |
+| **Categorias** | Nome, cor e ordem de exibição (setas ↑ ↓). |
+| **Histórico** | Barras com o total dos últimos 12 meses, pizza por categoria e comparação com o mês anterior (R$ e %). |
+
+No primeiro acesso aparece a opção **Importar dados de exemplo**, que cadastra as 6 categorias
+e as 22 contas da planilha e já gera o mês atual. Ela também fica no menu do usuário (ícone no canto superior direito).
+
+**No celular:** abra o site no navegador e use "Adicionar à tela inicial" — ele abre como um app.
+
+### Lembrete por e-mail das contas não pagas
+
+Nos dias **1, 6, 11, 16, 21 e 26, às 8h** (Brasília), o app envia por e-mail a lista das contas não
+pagas do mês, com total pendente, vencidas em destaque e códigos de pagamento. Se tudo estiver pago,
+não envia nada. No dia 1, se o mês ainda não foi gerado, ele é gerado antes do envio.
+
+O envio usa o [Resend](https://resend.com) (gratuito até 3.000 e-mails/mês), chamado pelo próprio banco
+(`pg_net`), com agendamento do `pg_cron` — não há servidor extra para publicar.
+
+1. Crie uma conta no Resend **com o mesmo e-mail que vai receber os lembretes** e gere uma chave em
+   **API Keys** (permissão *Sending access*). Sem domínio próprio, o Resend só envia para o e-mail dono da conta.
+2. No SQL Editor do Supabase, rode
+   [supabase/migrations/20261031130000_lembretes_email.sql](supabase/migrations/20261031130000_lembretes_email.sql).
+3. Ainda no SQL Editor, guarde a chave no Vault (criptografado):
+   ```sql
+   select vault.create_secret('re_SUA_CHAVE_AQUI', 'resend_api_key');
+   ```
+4. No app: menu do usuário → **Lembretes por e-mail** → informe o e-mail → **Enviar teste agora**.
+
+Mais tarde, com um domínio verificado no Resend, você pode trocar o remetente:
+`select vault.create_secret('Contas <contas@seudominio.com.br>', 'lembrete_remetente');`
+
+Para conferir ou mudar o agendamento:
+```sql
+select * from cron.job;                              -- agendamentos
+select * from cron.job_run_details order by start_time desc limit 10;  -- execuções
+select * from net._http_response order by created desc limit 10;      -- respostas do Resend
+select cron.unschedule('lembrete-contas-pendentes'); -- desliga para todos
+```
+
+Se o SQL reclamar das extensões, ative **pg_cron** e **pg_net** em Database → Extensions e rode o arquivo de novo.
+
+### Contas parceladas
+
+Informe a parcela atual, o total e **a qual mês essa parcela se refere** (ex.: "Tratamento Sil",
+parcela 5 de 33 em outubro/2026). O app calcula sozinho a parcela de qualquer mês (novembro = 6/33…),
+mostra "5/33" no painel, para de lançar depois da última parcela e marca a conta como encerrada.
+
+### Valores e totais
+
+- Mudar o valor de um mês não altera o modelo. Ao editar o valor padrão de uma conta, você pode
+  optar por aplicá-lo também aos lançamentos ainda não pagos a partir do mês atual.
+- Nenhum total é digitado: o painel soma os lançamentos, o banco tem as views
+  `v_totais_mes` e `v_totais_categoria_mes`, e o Excel exportado usa fórmulas (`SOMA`, `SOMASES`).
+
+---
+
+## Módulo Triathlon
+
+| Tela | O que faz |
+|---|---|
+| **Painel** | Prova principal com contagem regressiva e fase sugerida (base, construção, específico, polimento), volume da semana por modalidade, forma do dia, últimos treinos e peso (com IMC e W/kg). |
+| **Treinos** | Treinos do mês agrupados por semana, filtro por modalidade, registro manual (com esforço percebido 1–10) e importação de arquivos. |
+| **Agenda** | Calendário mensal e semanal dos treinos planejados (corrida, natação, pedal e academia), situação de cada treino (concluído, perdido, pendente), metas por semana com barras de progresso, treinos feitos fora do plano, evolução das últimas 12 semanas e resumo por mês. Aba **Musculação**: sugestão de rotina, registro de cargas e progressão. Veja [Agenda](#agenda-metas-semanais-e-treinos-planejados) e [Musculação](#musculação-sugestão-de-rotina-e-progressão-de-carga). |
+| **Evolução** | Volume semanal por modalidade, condicionamento/fadiga/forma, pace da corrida, velocidade no ciclismo, ritmo na natação, peso × pace (com correlação) e recordes. |
+| **Corpo** | Peso e altura → IMC com a tabela da OMS e a faixa de peso normal para a sua altura; % de gordura (balança, método da Marinha pelas medidas ou estimada pelo IMC), massa magra/gorda e FFMI; cintura, cintura ÷ altura, cintura ÷ quadril e gordura visceral; dados da bioimpedância; peso de referência (fórmulas clássicas e peso para cada % de gordura); taxa basal por 4 fórmulas, gasto dos treinos e necessidades de proteína, carboidrato, gordura e água; tendência em kg/semana; **meta semanal** até o peso objetivo, com metas semana a semana e previsão de chegada; gráficos e histórico. Veja [Corpo](#corpo-peso-imc-e-composição). |
+| **Nutrição** | Alimentação do dia (calorias e macros × metas, gasto dos treinos, balanço estimado, alimentos salvos, repetir dia anterior). |
+| **Provas** | Provas-alvo com prioridade A/B/C, distâncias, meta de tempo e resultado. |
+| Menu do usuário → **Perfil do atleta** | FTP, FC de limiar, pace de limiar, CSS, metas — e as zonas de FC e potência calculadas. |
+
+### Carga, condicionamento, fadiga e forma
+
+Cada treino recebe uma **carga** ≈ horas × (intensidade)² × 100, em que intensidade 1 = seu limiar. A intensidade
+vem da potência ÷ FTP (ciclismo), do pace ÷ pace de limiar (corrida), do ritmo ÷ CSS (natação, ao cubo), da FC ÷ FC
+de limiar ou do esforço percebido — nessa ordem de preferência. Por isso vale preencher o **Perfil do atleta**.
+
+- **Condicionamento**: média exponencial da carga dos últimos 42 dias.
+- **Fadiga**: média exponencial dos últimos 7 dias.
+- **Forma**: condicionamento − fadiga ao fim do dia anterior (positivo = descansado; muito negativo = sobrecarga).
+
+### Agenda: metas semanais e treinos planejados
+
+A semana vai de segunda a domingo (como no resto do app). No calendário mensal, toque num dia para ver, planejar,
+editar, reagendar (mudando a data) ou excluir treinos; toque em **S44** (número da semana) para escolher a semana.
+A visão **Semana** mostra os treinos de cada dia em detalhe. Mês, semana e visão ficam no endereço da página.
+
+- **Metas**: cada semana tem as próprias (corrida e pedal em km, natação em metros, academia em sessões). Dá para
+  copiar da semana anterior e aplicar também às próximas semanas; semanas anteriores nunca mudam.
+- **Situação**: ✓ concluído (verde), ✗ perdido (vermelho), ◌ pendente (amarelo), com um toque. Ao concluir, você
+  informa a distância e a duração feitas — só isso conta para a meta (planejou 10 km e fez 8: contam 8). Perdido não
+  conta. Pendente vira perdido só depois que o dia termina e ainda pode ser marcado como concluído.
+- **Ligação com Treinos**: ao concluir, dá para vincular a atividade daquele dia (importada do relógio ou registrada
+  à mão) ou registrar uma nova em Treinos, para entrar na carga e na forma. Atividades da semana que não estão no
+  plano aparecem em **Feitos fora do plano**, com o botão **Incluir**. Excluir um treino da agenda não apaga a atividade.
+- **Copiar semana**: numa semana vazia, **Copiar da semana anterior** repete os treinos como pendentes.
+- **Provas**: as provas cadastradas em **Provas** aparecem sozinhas no calendário (etiqueta com bandeira no mês, cartão
+  com tipo, distâncias, local e meta/resultado na semana e no dia) e no painel da semana. Criou, editou ou apagou em
+  Provas, a Agenda acompanha.
+- **Painel**: mostra os treinos de hoje (com a marcação rápida) e as metas da semana.
+
+### Musculação: sugestão de rotina e progressão de carga
+
+Na Agenda, aba **Musculação**:
+
+1. **Configure**: objetivo principal (emagrecimento, hipertrofia ou recomposição) e secundário (desempenho no
+   triathlon ou saúde), nível, academia ou casa (com os equipamentos que você tem), 2 a 6 dias, foco (corpo inteiro,
+   superiores, inferiores ou força e condicionamento) e tempo por sessão (30, 45, 60 ou 90 min).
+2. **Gere a sugestão** ou use o **modelo Full Body 3 dias** (A força geral, B hipertrofia, C volume e
+   condicionamento). A sugestão explica por que ficou assim e avisa o que merece atenção.
+3. **Edite**: troque exercícios por alternativas do mesmo padrão de movimento, mude séries, repetições, descanso, ordem
+   e dias; adicione exercícios do catálogo ou digitados. **Salve** e **coloque na agenda** (semana de início, quantas
+   semanas, dias da semana e por qual treino começar).
+4. **Registre**: no calendário, ✓ num treino de academia abre o registro série por série (carga, repetições, esforço
+   RPE e técnica), com a última vez que você fez cada exercício e a sugestão de carga para hoje.
+
+Como a sugestão é montada (sem sorteio — [src/lib/forca/recomendacao.ts](src/lib/forca/recomendacao.ts)):
+
+| Regra | Como funciona |
+|---|---|
+| Divisão | 2 dias: Full Body A/B · 3: Full Body ABC (avançado + hipertrofia: empurrar/puxar/pernas) · 4: Upper/Lower · 5: Upper/Lower + ABC · 6: ABC 2×. Iniciante fica em até 4 dias |
+| Objetivo | hipertrofia 8–12 (compostos) e 10–15 (isolados) · recomposição 6–10 · emagrecimento 10–15 com descanso curto e finalizador aeróbico · força e condicionamento 4–6 no exercício principal |
+| Nível | iniciante só recebe exercícios de iniciante e menos séries; avançado ganha uma série nos compostos |
+| Tempo | estima a sessão (aquecimento + séries + descanso) e tira primeiro o que é “se der tempo” |
+| Corrida e pedal | com ~25 km+ de corrida ou ~100 km+ de pedal por semana (média de 4 semanas em Treinos): uma série a menos nos compostos de pernas, sem impacto e sem finalizador aeróbico |
+| Treino longo | pernas pesadas não caem no dia nem na véspera do treino longo habitual; avisa pernas em dias seguidos |
+| Natação | com 6.000 m+ por semana: menos desenvolvimento acima da cabeça e trabalho de posterior de ombro |
+| Histórico | usa a última carga de cada exercício como referência; avisa se faz mais de 3 semanas sem musculação |
+
+**Progressão de carga** ([src/lib/forca/progressao.ts](src/lib/forca/progressao.ts)): a carga só sobe quando todas as
+séries chegaram ao topo da faixa, com técnica boa e esforço até RPE 8 (sobrando 2 repetições) — então sugere +5%
+(pernas) ou +2,5% (demais), arredondado para 0,5 kg. Sem RPE registrado, no limite ou com técnica ruim, mantém. Abaixo
+do mínimo duas vezes seguidas na mesma carga, sugere reduzir ~8%. Ao agendar um treino de academia, o app avisa se os
+mesmos grupos foram treinados nas 48 h anteriores.
+
+O painel da aba mostra planejados, concluídos e % da semana, volume (carga × repetições) das últimas 8 semanas,
+séries por grupo muscular nesta semana e na passada, evolução de carga e 1RM estimada por exercício, a progressão de
+cada exercício da rotina e o histórico de treinos.
+
+#### Demonstrações dos exercícios (ExerciseDB)
+
+Cada exercício mostra **como fazer**: animação (GIF), a dica de execução em português, músculo principal e secundários,
+equipamento e o passo a passo original. Os dados vêm da versão gratuita da [ExerciseDB](https://oss.exercisedb.dev/docs)
+— chamada direto do navegador, sem chave e sem variável de ambiente ([src/lib/forca/exercisedb.ts](src/lib/forca/exercisedb.ts)).
+
+- **Onde aparece**: ao tocar num exercício da rotina ou do treino agendado (miniatura + **Como fazer**), no registro do
+  treino (**Como fazer** ao lado de cada exercício) e no editor (▶ em cada exercício).
+- **Exercícios do catálogo**: 27 já vêm ligados à demonstração conferida (mapa `DEMONSTRACAO`); os demais têm um termo
+  de busca em inglês (`BUSCA`) — na primeira vez que a demonstração é aberta, o app busca, mostra o primeiro resultado
+  com o aviso “confira se é o mesmo exercício” e guarda a escolha no navegador.
+- **Trocar ou escolher**: **Escolher outra demonstração** busca na ExerciseDB (em inglês). No editor da rotina a escolha
+  fica salva no exercício (`exercisedb_id` dentro de `exercicios`); nas outras telas, neste navegador. Exercício
+  digitado à mão começa sem demonstração e abre direto na busca.
+- **Limite de consultas**: a API gratuita bloqueia rajadas de pedidos. Por isso o GIF é carregado direto do endereço
+  fixo (`static.exercisedb.dev/media/<id>.gif`, sem consulta), e os detalhes só são buscados ao abrir a demonstração
+  e ficam guardados no navegador. Se aparecer “limitando as consultas”, espere alguns segundos e toque em **Tentar de novo**.
+- **Idioma**: a ExerciseDB só tem dados em inglês; músculos e equipamentos são traduzidos no app, o passo a passo fica
+  no original (a dica em português vem do catálogo do app).
+- **Termos de uso**: a versão gratuita é para uso pessoal e não comercial, com crédito obrigatório à
+  [AscendAPI](https://ascendapi.com) — o crédito aparece em toda demonstração. Para uso comercial é preciso o plano pago
+  (RapidAPI).
+
+### Registrar treinos
+
+Não há conexão automática com Strava ou TrainingPeaks: os treinos entram **à mão** (Treinos → **Novo treino**) ou
+**por arquivo** (Painel ou Treinos → **Importar**): `.fit`, `.tcx`, `.gpx` do relógio/ciclocomputador, o `.csv` de
+resumo de treinos do TrainingPeaks e `.zip`/`.gz` com vários arquivos (por exemplo, a exportação em lote da sua
+conta no Strava ou no TrainingPeaks). Arquivos multiesporte viram um treino por modalidade; treinos que já existem
+são marcados e ficam de fora.
+
+### Corpo: peso, IMC e composição
+
+Em **Seus dados** ficam altura, sexo, nascimento e peso meta (os mesmos do Perfil do atleta). **Registrar peso** grava
+só o peso do dia; **Medição completa** grava também o que a balança de bioimpedância mostra (gordura, músculo, água,
+gordura visceral, osso) e as circunferências (cintura, quadril, pescoço, braço, coxa). Os cálculos usam sempre o
+valor mais recente de cada medida.
+
+| Cálculo | Fórmula / referência |
+|---|---|
+| IMC | peso ÷ altura²; faixas da OMS (e de Lipschitz a partir de 60 anos) |
+| % de gordura | medida da balança; senão método da Marinha dos EUA (cintura, pescoço e, para mulheres, quadril); senão Deurenberg pelo IMC. Faixas do ACE (atleta, boa forma, média…) |
+| Massa magra, FFMI | peso × (1 − % gordura); FFMI = massa magra ÷ altura², normalizado para 1,80 m |
+| Cintura, cintura ÷ altura, cintura ÷ quadril | cortes da OMS (94/102 cm homens, 80/88 cm mulheres; RCQ 0,90/0,85) e de Ashwell (0,5) |
+| Peso de referência | faixa de IMC 18,5–24,9, IMC 22, Devine, Robinson, Miller, Hamwi e o peso para cada % de gordura mantendo a massa magra |
+| Taxa basal | Mifflin-St Jeor, Harris-Benedict revisada, Katch-McArdle e Cunningham (as duas últimas com % de gordura) |
+| Gasto total | basal × 1,2 + média diária dos treinos dos últimos 28 dias (calorias do treino; sem elas, potência, 1 kcal/kg/km na corrida ou MET) |
+| Tendência | regressão linear das pesagens das últimas 4 semanas, em kg e % do peso por semana, e previsão de quando chega na meta |
+
+#### Meta semanal e previsão
+
+Em **Meta semanal e previsão** você define o peso objetivo, quantos kg quer perder (ou ganhar) por semana, a data de
+início e o peso no início (vem sozinho da média de 7 dias daquela data). Com isso o app mostra:
+
+- **Meta de cada semana**: a média de peso planejada para a semana. A comparação é sempre média real × média do plano
+  nos mesmos dias, porque comparar a média de 7 dias com o peso de um único dia daria ~3 dias de atraso. Cada semana
+  passada aparece como cumprida, não cumprida ou sem pesagem.
+- **Adiantado ou atrasado** em relação ao plano, em kg, e quanto precisaria por semana para ainda chegar na data.
+- **Previsões de chegada**: pelo plano (do início), de hoje no ritmo do plano e no seu ritmo real (tendência).
+- **Ritmo**: em % do peso por semana — perder até 1% é o recomendado; ganhar acima de 0,5% tende a virar gordura.
+- **Déficit/superávit por dia**: kg por semana × 7.700 kcal ÷ 7, e quanto comer com base no gasto estimado.
+- **Gráfico**: a linha laranja tracejada é o plano, desenhada até a data prevista (no máximo 1 ano à frente).
+
+O formulário funciona como simulação: mude os valores e veja a previsão; **Salvar plano** grava e atualiza o gráfico e
+o Painel (que mostra a meta da semana). **Recomeçar hoje** monta o plano a partir do peso atual.
+
+## Banco de dados
+
+| Objeto | Descrição |
+|---|---|
+| `categorias` | nome, cor, ordem |
+| `contas` | modelos recorrentes: `valor_padrao`, `dia_vencimento`, `codigo_pagamento`, `responsavel`, `parcela_atual`, `total_parcelas`, `parcela_referencia`, `ativa` |
+| `lancamentos` | uma linha por conta por mês (`competencia` = dia 1), `unique (conta_id, competencia)` |
+| `gerar_mes(data)` | cria os lançamentos do mês sem duplicar; encerra parcelamentos concluídos |
+| `importar_dados_exemplo()` | cadastra os dados da planilha (não duplica se rodar de novo) |
+| `v_totais_mes`, `v_totais_categoria_mes` | totais (geral e por categoria) com pago/pendente |
+| `rendas` | rendas fixas (modelos): `valor_padrao`, `dia_recebimento`, `responsavel`, `ativa` |
+| `recebimentos` | renda de cada mês; sem `renda_id` = renda avulsa (com `descricao`) |
+| `caixinhas` | objetivos de economia: `meta`, `aporte_mensal` (plano), `data_alvo`, `arquivada` |
+| `movimentos_caixinha` | cada valor guardado (`aporte`) ou retirado (`retirada`) |
+| `v_saldo_caixinhas` | saldo, total guardado e retirado de cada caixinha |
+| `lembretes_email` | para qual e-mail enviar o lembrete de cada usuário (ativo/inativo, último envio) |
+| `treinos` | atividades (manual ou arquivo); `unique (user_id, origem, origem_id)` evita importar o mesmo arquivo duas vezes |
+| `perfil_atleta` | limiares (FTP, FC, pace, CSS) e metas de peso/nutrição |
+| `metas_semanais` | meta por semana (segunda-feira) e modalidade: `distancia_m` ou, na academia, `sessoes`; `unique (user_id, semana, modalidade)` |
+| `treinos_planejados` | treino de um dia: planejado (distância/duração), `status` pendente/concluído/perdido, realizado (só se concluído) e `treino_id` opcional apontando para a atividade em `treinos`; na academia, `rotina_id`, `rotina_treino` e a cópia dos `exercicios` do dia |
+| `rotinas_forca` | rotina de musculação: configuração, divisão, dias e `treinos` (jsonb com os exercícios); só uma `ativa` por usuário, as antigas ficam guardadas |
+| `series_forca` | cada série registrada (carga, repetições, RPE, técnica) de um treino planejado de academia |
+| `pesagens` | uma medição por dia: peso (obrigatório), dados da bioimpedância e circunferências |
+| `refeicoes`, `alimentos` | o que foi comido e alimentos salvos |
+| `provas` | provas-alvo e resultados |
+| `privado.enviar_lembretes()` | rodada agendada pelo `pg_cron`; o schema `privado` não é exposto pela API |
+
+- **RLS** ativo nas três tabelas: cada usuário só lê e altera os próprios registros (`user_id = auth.uid()`).
+  As views usam `security_invoker`, então respeitam o RLS. Chaves estrangeiras compostas impedem
+  vincular uma conta à categoria de outro usuário.
+- `parcela_referencia` foi acrescentada ao modelo pedido: guarda o mês em que `parcela_atual` vale,
+  para o número da parcela de qualquer mês ser calculado sem depender da ordem em que os meses são gerados.
+- Excluir uma conta apaga os lançamentos dela; para manter o histórico, **desative** em vez de excluir.
+
+## Estrutura do código
+
+```
+src/
+  modulos.ts      lista de módulos e as rotas de cada um
+  pages/          Login, SelecaoModulo, Dashboard (Mês), Economia, Contas, Categorias, Historico
+  pages/triathlon/   Painel, Treinos, Agenda, Evolucao, Corpo, Nutricao, Provas, PerfilAtleta
+  components/     layout/ (LayoutModulo, TrocarModulo, LayoutFinanceiro, LayoutTriathlon),
+                  login/ (fundo animado), dashboard/, economia/, contas/, triathlon/ (agenda/, corpo/, forca/), ui/ (shadcn)
+  hooks/          useDados, useEconomia, useTriathlon (React Query), useAuth, useTema, useCompetencia
+  lib/            format, exportar (Excel/CSV), triathlon (carga, forma, ritmos), corpo (IMC, gordura, faixas), agenda (semanas, metas, situação), forca/ (catálogo de exercícios, recomendação, progressão),
+                  importacaoArquivos (FIT/TCX/GPX/CSV)
+supabase/migrations/   SQL do banco
+```
+
+Para adicionar outros componentes do shadcn/ui: `npx shadcn@latest add <componente>`.
+
+Scripts: `npm run dev` · `npm run build` (verifica tipos e gera `dist/`) · `npm run preview`.

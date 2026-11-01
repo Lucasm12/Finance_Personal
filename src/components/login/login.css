@@ -1,0 +1,79 @@
+/* Tela de login: grade de fundo, brilho que segue o cursor e microanimações. */
+
+.login-grade {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 15%, transparent 80%);
+  animation: login-grade 26s linear infinite;
+}
+
+@keyframes login-grade {
+  to {
+    background-position: 44px 44px;
+  }
+}
+
+.login-brilho {
+  background: radial-gradient(560px circle at var(--x, 50%) var(--y, 40%), rgb(16 185 129 / 0.08), transparent 60%);
+}
+
+.login-cartao-luz {
+  background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgb(52 211 153 / 0.1), transparent 45%);
+}
+
+.login-tremer {
+  animation: login-tremer 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes login-tremer {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(3px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-6px);
+  }
+  40%,
+  60% {
+    transform: translateX(6px);
+  }
+}
+
+/* reflexo que atravessa o botão no hover */
+.login-botao .login-reflexo {
+  transform: translateX(-120%);
+}
+.login-botao:hover:not(:disabled) .login-reflexo {
+  animation: login-reflexo 0.9s ease;
+}
+
+@keyframes login-reflexo {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+/* autopreenchimento do navegador sem o fundo amarelo/azul */
+.login-campo:-webkit-autofill,
+.login-campo:-webkit-autofill:hover,
+.login-campo:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  transition: background-color 600000s 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-grade,
+  .login-tremer,
+  .login-botao:hover .login-reflexo {
+    animation: none;
+  }
+}

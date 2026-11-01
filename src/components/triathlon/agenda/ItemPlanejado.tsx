@@ -1,0 +1,130 @@
+import { useState } from 'react'
+import { PencilIcon } from 'lucide-react'
+
+import { DialogConcluir } from '@/components/triathlon/agenda/DialogConcluir'
+import { DialogExecucao } from '@/components/triathlon/forca/DialogExecucao'
+import { IconeModalidade } from '@/components/triathlon/LinhaTreino'
+import { Button } from '@/components/ui/button'
+import { useMudarStatusTreino } from '@/hooks/useTriathlon'
+import { distanciaTexto, ORDEM_STATUS, STATUS, statusEfetivo, type StatusEfetivo } from '@/lib/agenda'
+import { duracaoCurta } from '@/lib/triathlon'
+import { cn } from '@/lib/utils'
+import type { StatusTreino, TreinoPlanejado } from '@/types/triathlon'
+
+/** Ícone na cor da situação + nome (a cor nunca vai sozinha). */
+export function SeloStatus({ efetivo, className }: { efetivo: StatusEfetivo; className?: string }) {
+  const info = STATUS[efetivo.status]
+  return (
+    <span className={cn('inline-flex items-center gap-1 text-xs', className)}>
+      <info.icone className={cn('size-3.5', info.texto)} aria-hidden />
+      {info.rotulo}
+      {efetivo.automatico && <span className="text-muted-foreground">(sem marcar)</span>}
+    </span>
+  )
+}
+
+/** Três botões para trocar a situação com um toque: concluído, perdido, pendente. */
+export function ControleStatus({
+  status,
+  onMudar,
+  disabled,
+}: {
+  status: StatusTreino
+  onMudar: (s: StatusTreino) => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="flex shrink-0 gap-1" role="radiogroup" aria-label="Situação do treino">
+      {ORDEM_STATUS.map((s) => {
+        const info = STATUS[s]
+        const ativo = s === status
+        return (
+          <button
+            key={s}
+            type="button"
+            role="radio"
+            aria-checked={ativo}
+            aria-label={info.rotulo}
+            title={info.rotulo}
+            disabled={disabled}
+            onClick={() => onMudar(s)}
+            className={cn(
+              'flex size-8 items-center justify-center rounded-md border transition-colors disabled:opacity-50',
+              ativo
+                ? cn(info.fundo, 'border-transparent', s === 'pendente' ? 'text-black/75' : 'text-white')
+                : 'text-muted-foreground hover:bg-accent',
+            )}
+          >
+            <info.icone className="size-4" />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+interface Props {
+  treino: TreinoPlanejado
+  onEditar: (t: TreinoPlanejado) => void
+  /** mostra o dia (listas que misturam dias) */
+  dia?: string
+}
+
+export function ItemPlanejado({ treino: t, onEditar, dia }: Props) {
+  const mudar = useMudarStatusTreino()
+  const [concluindo, setConcluindo] = useState(false)
+  const [executando, setExecutando] = useState(false)
+  const efetivo = statusEfetivo(t)
+  // academia com exercícios: o registro é série por série
+  const exercicios = t.modalidade === 'forca' ? (t.exercicios ?? []) : []
+
+  function mudarStatus(s: StatusTreino) {
+    // concluído abre os campos do que foi feito (também para corrigir um já concluído)
+    if (s === 'concluido') return exercicios.length ? setExecutando(true) : setConcluindo(true)
+    if (s !== t.status) mudar.mutate({ id: t.id, status: s })
+  }
+
+  const planejado = [
+    t.distancia_planejada_m ? distanciaTexto(t.modalidade, t.distancia_planejada_m) : null,
+    t.duracao_planejada_seg ? duracaoCurta(t.duracao_planejada_seg) : null,
+  ].filter(Boolean)
+  const feito = [
+    t.distancia_realizada_m !== null && t.modalidade !== 'forca' ? distanciaTexto(t.modalidade, t.distancia_realizada_m) : null,
+    t.duracao_realizada_seg ? duracaoCurta(t.duracao_realizada_seg) : null,
+  ].filter(Boolean)
+
+  return (
+    <li className="flex items-start gap-3 px-3 py-2.5">
+      <IconeModalidade modalidade={t.modalidade} className="mt-0.5 size-8" />
+      <div className="min-w-0 flex-1">
+        <button type="button" onClick={() => onEditar(t)} className="block max-w-full truncate text-left font-medium hover:underline">
+          {t.nome}
+        </button>
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-xs">
+          {dia && <span>{dia}</span>}
+          <SeloStatus efetivo={efetivo} className="text-foreground" />
+          {planejado.length > 0 && <span>plano: {planejado.join(' · ')}</span>}
+          {t.status === 'concluido' && feito.length > 0 && <span className="text-foreground">feito: {feito.join(' · ')}</span>}
+        </div>
+        {t.descricao && <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{t.descricao}</p>}
+        {exercicios.length > 0 && (
+          <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
+            {exercicios
+              .slice(0, 4)
+              .map((x) => x.nome)
+              .join(' · ')}
+            {exercicios.length > 4 && ` +${exercicios.length - 4}`}
+          </p>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <ControleStatus status={t.status} onMudar={mudarStatus} disabled={mudar.isPending} />
+        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hidden sm:inline-flex" aria-label={`Editar ${t.nome}`} onClick={() => onEditar(t)}>
+          <PencilIcon />
+        </Button>
+      </div>
+      <DialogConcluir treino={concluindo ? t : null} onFechar={() => setConcluindo(false)} />
+      <DialogExecucao treino={executando ? t : null} onFechar={() => setExecutando(false)} />
+    </li>
+  )
+}
