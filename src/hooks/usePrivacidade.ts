@@ -23,6 +23,20 @@ const TABELAS = [
   'alimentos',
   'refeicoes',
   'provas',
+  'areas_vida',
+  'objetivos',
+  'metas',
+  'metas_progresso',
+  'metas_marcos',
+  'habitos',
+  'habitos_registros',
+  'tarefas',
+  'diario',
+  'revisoes',
+  'planos_leitura',
+  'leitura_progresso',
+  'leitura_anotacoes',
+  'versiculos_marcados',
 ] as const
 
 /** LGPD (art. 18): reúne em um JSON tudo o que o app guarda da pessoa logada. */

@@ -19,6 +19,10 @@ const DADOS: [string, string][] = [
     'Nascimento, sexo, altura, peso, medidas e bioimpedância — para IMC, % de gordura e gasto calórico. São dados de saúde: só a sua conta acessa.',
   ],
   ['Alimentação', 'Refeições e alimentos salvos — para o balanço de calorias.'],
+  [
+    'Pessoal',
+    'Objetivos, metas, hábitos, tarefas, diário (humor, gratidão e texto), revisões e a leitura da Bíblia (capítulos lidos, anotações e versículos marcados) — para acompanhar o seu dia a dia. Diário e leitura bíblica são dados sensíveis: só a sua conta acessa.',
+  ],
 ]
 
 function ExclusaoConta({ onFechar }: { onFechar: () => void }) {
@@ -49,7 +53,7 @@ function ExclusaoConta({ onFechar }: { onFechar: () => void }) {
   return (
     <form onSubmit={enviar} className="border-destructive/40 bg-destructive/5 grid gap-3 rounded-lg border p-3" noValidate>
       <p className="text-sm">
-        <strong>Isto apaga a conta e todos os dados dela</strong> (financeiro, treinos, corpo, alimentação, lembretes) e não pode ser
+        <strong>Isto apaga a conta e todos os dados dela</strong> (financeiro, treinos, corpo, alimentação, lembretes, pessoal) e não pode ser
         desfeito. Baixe seus dados antes, se quiser guardar.
       </p>
       <div className="grid gap-1.5">

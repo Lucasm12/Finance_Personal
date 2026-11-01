@@ -102,14 +102,14 @@ export default function SelecaoModulo() {
 
   return (
     <FundoTecnologico>
-      <main className="relative z-10 w-full max-w-3xl">
+      <main className="relative z-10 w-full max-w-3xl lg:max-w-5xl">
         <div className="animate-in fade-in slide-in-from-bottom-4 mb-8 flex flex-col items-center text-center duration-700">
           <LogoAnimado />
           <h1 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">{saudacao(new Date().getHours())}</h1>
           <p className="mt-2 text-white/50">Em qual módulo você quer entrar?</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {MODULOS.map((m, i) => (
             <CartaoModulo
               key={m.id}

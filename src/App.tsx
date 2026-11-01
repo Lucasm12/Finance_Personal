@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 
 import { Carregando } from '@/components/Carregando'
 import { LayoutFinanceiro } from '@/components/layout/LayoutFinanceiro'
+import { LayoutPessoal } from '@/components/layout/LayoutPessoal'
 import { LayoutTriathlon } from '@/components/layout/LayoutTriathlon'
 import { useAuth } from '@/hooks/useAuth'
 import { supabaseConfigurado } from '@/lib/supabase'
@@ -26,6 +27,15 @@ const NutricaoTriathlon = lazy(() => import('@/pages/triathlon/Nutricao'))
 const ProvasTriathlon = lazy(() => import('@/pages/triathlon/Provas'))
 const CorpoTriathlon = lazy(() => import('@/pages/triathlon/Corpo'))
 const PerfilAtletaTriathlon = lazy(() => import('@/pages/triathlon/PerfilAtleta'))
+
+// Pessoal
+const MeuDia = lazy(() => import('@/pages/pessoal/MeuDia'))
+const Biblia = lazy(() => import('@/pages/pessoal/Biblia'))
+const Leitura = lazy(() => import('@/pages/pessoal/Leitura'))
+const Metas = lazy(() => import('@/pages/pessoal/Metas'))
+const Habitos = lazy(() => import('@/pages/pessoal/Habitos'))
+const Tarefas = lazy(() => import('@/pages/pessoal/Tarefas'))
+const Diario = lazy(() => import('@/pages/pessoal/Diario'))
 
 function Protegida({ children }: { children: ReactNode }) {
   const { sessao, carregando } = useAuth()
@@ -83,6 +93,23 @@ export default function App() {
           <Route path="nutricao" element={<NutricaoTriathlon />} />
           <Route path="provas" element={<ProvasTriathlon />} />
           <Route path="perfil" element={<PerfilAtletaTriathlon />} />
+        </Route>
+
+        <Route
+          path="/pessoal"
+          element={
+            <Protegida>
+              <LayoutPessoal />
+            </Protegida>
+          }
+        >
+          <Route index element={<MeuDia />} />
+          <Route path="biblia" element={<Biblia />} />
+          <Route path="biblia/:livro/:capitulo" element={<Leitura />} />
+          <Route path="metas" element={<Metas />} />
+          <Route path="habitos" element={<Habitos />} />
+          <Route path="tarefas" element={<Tarefas />} />
+          <Route path="diario" element={<Diario />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

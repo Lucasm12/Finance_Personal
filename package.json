@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:seguranca": "vitest run tests/banco tests/frontend",
-    "audit": "npm audit"
+    "audit": "npm audit",
+    "seed:biblia": "node --env-file-if-exists=.env.local scripts/seed-biblia.mjs"
   },
   "dependencies": {
     "@garmin/fitsdk": "^21.218.0",

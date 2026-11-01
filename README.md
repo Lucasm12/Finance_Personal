@@ -7,6 +7,7 @@ e dentro de cada módulo pode trocar de módulo tocando no nome dele no topo da 
 |---|---|---|
 | **Financeiro** | `/financeiro` | Controle das contas fixas mensais da família: você cadastra as contas uma vez (os "modelos") e o app monta a lista de cada mês sozinho, com checkbox de pago, totais automáticos, parcelas, histórico, exportação, rendas e caixinhas de economia. |
 | **Triathlon** | `/triathlon` | Treinos de natação, ciclismo e corrida (registro manual ou arquivos do relógio), agenda semanal com metas por modalidade, carga de treino e forma, evolução de volume e ritmos, corpo (peso, IMC, composição e medidas), alimentação, provas-alvo. Veja [a seção do Triathlon](#módulo-triathlon). |
+| **Pessoal** | `/pessoal` | Meu dia, objetivos e metas do ano por área da vida, leitura da Bíblia com plano anual, hábitos, tarefas, diário e revisões semanal e mensal. Veja [a seção do Pessoal](#módulo-pessoal). |
 
 Os módulos ficam em [src/modulos.ts](src/modulos.ts). Para criar um novo: registre-o ali, crie um layout
 com `LayoutModulo` (veja [LayoutTriathlon.tsx](src/components/layout/LayoutTriathlon.tsx)) e adicione as rotas em [App.tsx](src/App.tsx).
@@ -28,6 +29,7 @@ com `LayoutModulo` (veja [LayoutTriathlon.tsx](src/components/layout/LayoutTriat
    7. [supabase/migrations/20261101130000_agenda_treinos.sql](supabase/migrations/20261101130000_agenda_treinos.sql) — Agenda: metas semanais e treinos planejados. Pode rodar de novo sem problema
    8. [supabase/migrations/20261101140000_musculacao.sql](supabase/migrations/20261101140000_musculacao.sql) — Musculação: rotinas de força, exercícios de cada treino agendado e séries registradas. Pode rodar de novo sem problema
    9. [supabase/migrations/20261101150000_seguranca.sql](supabase/migrations/20261101150000_seguranca.sql) — **segurança**: cadastro só para e-mails autorizados, proteção do lembrete, limites de tamanho, auditoria e exclusão de conta. Veja [SEGURANCA.md](SEGURANCA.md)
+   10. [supabase/migrations/20261102120000_pessoal.sql](supabase/migrations/20261102120000_pessoal.sql) — módulo **Pessoal**: livros da Bíblia e planos de leitura, objetivos, metas, hábitos, tarefas, diário, revisões e os cálculos (sequências, progresso, atrasos). Pode rodar de novo sem problema. **Depois dela, importe o texto da Bíblia uma vez:** veja [Bíblia: importar o texto](#bíblia-importar-o-texto-uma-vez)
 
    > Se usar a Supabase CLI: `supabase link --project-ref SEU-REF` e depois `supabase db push`.
 
@@ -311,6 +313,74 @@ início e o peso no início (vem sozinho da média de 7 dias daquela data). Com 
 O formulário funciona como simulação: mude os valores e veja a previsão; **Salvar plano** grava e atualiza o gráfico e
 o Painel (que mostra a meta da semana). **Recomeçar hoje** monta o plano a partir do peso atual.
 
+---
+
+## Módulo Pessoal
+
+Separado do Triathlon, para o dia a dia, os objetivos do ano e a leitura bíblica. Ao abrir o módulo pela primeira vez, o
+banco cria as áreas da vida padrão (Espiritual, Saúde, Família, Finanças, Carreira, Estudos e Pessoal) e a meta
+**“Ler a Bíblia inteira no ano”**, que é atualizada sozinha pela leitura.
+
+| Tela | O que faz |
+|---|---|
+| **Meu dia** | Saudação e data; leitura do dia pelo plano (com **Ler agora**), sequência de dias de leitura, hábitos do dia para marcar, as 3 prioridades e as tarefas de hoje, metas em andamento com barra de progresso e o humor do dia. Aos domingos, um atalho para a revisão semanal. |
+| **Bíblia** | Plano de leitura (meta do dia, adiantado/atrasado e sugestão de recuperação), livros do Antigo e do Novo Testamento com o percentual lido de cada um, estatísticas (total, % da Bíblia, sequência e recorde, capítulos por mês e calendário de calor), **Meus versículos** e anotações. |
+| **Leitura** | Capítulo com texto limpo, letra ajustável, modo escuro, capítulo anterior/seguinte. **Concluir capítulo** registra a data (do servidor), abre a anotação opcional (versículo que mais marcou, reflexão, aplicação prática) e depois o próximo capítulo do plano. Tocar num versículo marca com uma cor. Concluiu por engano? **Desmarcar**. |
+| **Metas** | Objetivos do ano por área da vida e metas numéricas (com registro de progresso, data e observação), sim/não ou por marcos (etapas com checkbox). Visão anual com o progresso por área e alerta das metas atrasadas, comparando o esperado para a data com o realizado. Áreas personalizadas em **Áreas**. |
+| **Hábitos** | Hábitos diários ou em dias da semana, check do dia, sequência, recorde, % da semana e do mês e os últimos 14 dias (dá para marcar um dia esquecido). |
+| **Tarefas** | Hoje (com as 3 prioridades do dia, marcadas com estrela), próximos 7 dias e atrasadas; prioridade, área e vínculo opcional com uma meta. |
+| **Diário** | Humor de 1 a 5, 3 motivos de gratidão e texto livre; revisão semanal guiada com o resumo automático da semana (hábitos, leitura, metas, treinos, tarefas e diário) e revisão mensal com o progresso das metas do ano. |
+
+**Integração com o Triathlon:** uma meta numérica de um objetivo da área **Saúde** pode ser medida pelos treinos:
+quantidade de treinos, distância total, horas, “treinar X vezes por semana” (conta as semanas em que você bateu a
+frequência) ou completar uma prova-alvo (conclui quando o resultado da prova é registrado em **Provas**).
+
+**Cálculos no servidor.** Sequências, percentuais, progresso esperado, adiantado/atrasado e o resumo da semana são
+calculados no Postgres (view `metas_situacao` e as funções `leitura_resumo`, `leitura_estatisticas`,
+`habitos_resumo`, `visao_anual` e `resumo_semana`), com as permissões de quem consulta. O “dia” é sempre o de
+**São Paulo** (`America/Sao_Paulo`): um capítulo concluído às 22h30 conta para aquele dia, mesmo sendo 01h30 em UTC.
+
+**Planos de leitura:** sequencial (Gênesis a Apocalipse), cronológico (aproximado: Jó junto de Gênesis, profetas
+junto de Reis e Crônicas, cartas junto de Atos) e AT + NT em paralelo. A meta de cada dia é recalculada para terminar
+no prazo: (capítulos que faltam no começo do dia) ÷ (dias que restam) — em 1 ano, 3 a 4 capítulos por dia. Se estiver
+atrasado, o app mostra quantos capítulos e quanto ler por dia para recuperar em uma semana.
+
+### Bíblia: importar o texto (uma vez)
+
+O texto é a **Almeida de 1911** (reimpressão da edição de 1900 de João Ferreira de Almeida), de **domínio público**, com
+a grafia da época (“creou”, “Christo”). Ela vem do módulo `PorAlmeida1911` da CrossWire Bible Society e fica
+gravada no seu Supabase: durante a leitura o app não depende de nenhuma API externa.
+
+1. Rode antes a migração 10 (`20261102120000_pessoal.sql`).
+2. No Supabase, copie a **chave secreta**: **Project Settings → API Keys** → `service_role` (ou uma `sb_secret_...`).
+   Ela só é usada no seu computador, para gravar o texto. **Não** coloque no `.env` com prefixo `VITE_`,
+   **não** cadastre na Vercel e **não** faça commit dela.
+3. No terminal, na pasta do projeto:
+
+   PowerShell (Windows):
+   ```powershell
+   $env:SUPABASE_SERVICE_ROLE_KEY = "cole-a-chave-secreta-aqui"
+   npm run seed:biblia
+   Remove-Item Env:SUPABASE_SERVICE_ROLE_KEY
+   ```
+
+   Bash (Mac/Linux):
+   ```bash
+   SUPABASE_SERVICE_ROLE_KEY="cole-a-chave-secreta-aqui" npm run seed:biblia
+   ```
+
+   O endereço do projeto vem do `VITE_SUPABASE_URL` do `.env.local` (ou defina `SUPABASE_URL`).
+
+O script baixa o módulo (≈1,5 MB), confere se vieram os 66 livros e os 1.189 capítulos e grava 31.101 versículos em
+lotes. Leva menos de um minuto. Pode rodar de novo: não duplica nada e os versículos marcados continuam valendo.
+
+- **Só conferir, sem gravar:** `npm run seed:biblia -- --verificar`
+- **Sem acesso ao CrossWire pelo terminal?** Baixe o .zip pelo navegador em
+  `https://crosswire.org/ftpmirror/pub/sword/packages/rawzip/PorAlmeida1911.zip` e rode
+  `npm run seed:biblia -- --arquivo caminho/PorAlmeida1911.zip`.
+
+Enquanto o texto não for importado, o app mostra um aviso na tela da Bíblia (o resto do módulo funciona normalmente).
+
 ## Banco de dados
 
 | Objeto | Descrição |
@@ -337,6 +407,17 @@ o Painel (que mostra a meta da semana). **Recomeçar hoje** monta o plano a part
 | `refeicoes`, `alimentos` | o que foi comido e alimentos salvos |
 | `provas` | provas-alvo e resultados |
 | `privado.enviar_lembretes()` | rodada agendada pelo `pg_cron`; o schema `privado` não é exposto pela API |
+| `biblia_livros`, `biblia_capitulos`, `biblia_versiculos` | a Bíblia (somente leitura para quem está logado). O id do versículo é estável: livro·1.000.000 + capítulo·1.000 + versículo; a chave única `(livro_id, capitulo, versiculo)` serve de índice |
+| `biblia_plano_ordem` | a ordem dos 1.189 capítulos em cada plano (sequencial, cronológico, paralelo) |
+| `planos_leitura` | plano de leitura do usuário (tipo, início, fim); só um ativo |
+| `leitura_progresso` | capítulos concluídos, com data/hora; `unique (user_id, livro_id, capitulo)` |
+| `leitura_anotacoes`, `versiculos_marcados` | anotações ao concluir um capítulo e versículos marcados com cor |
+| `areas_vida`, `objetivos`, `metas` | áreas da vida, objetivos do ano e metas (`tipo`, `valor_alvo`, `prazo`, `status`, `origem_automatica`: bíblia, treino ou nenhuma) |
+| `metas_progresso`, `metas_marcos` | registros de progresso (o banco soma em `valor_atual`) e etapas das metas por marcos |
+| `metas_situacao` | view: progresso de cada meta, fração esperada para hoje e situação (em dia, atrasada, concluída...) |
+| `habitos`, `habitos_registros` | hábitos (`frequencia` em JSON: diária ou dias da semana) e o check de cada dia |
+| `tarefas` | data, prioridade, área, meta opcional e `foco` (no máximo 3 por dia) |
+| `diario`, `revisoes` | diário (um por dia) e revisões semanais/mensais (respostas em JSON) |
 
 - **RLS** ativo nas três tabelas: cada usuário só lê e altera os próprios registros (`user_id = auth.uid()`).
   As views usam `security_invoker`, então respeitam o RLS. Chaves estrangeiras compostas impedem
@@ -352,14 +433,18 @@ src/
   modulos.ts      lista de módulos e as rotas de cada um
   pages/          Login, SelecaoModulo, Dashboard (Mês), Economia, Contas, Categorias, Historico
   pages/triathlon/   Painel, Treinos, Agenda, Evolucao, Corpo, Nutricao, Provas, PerfilAtleta
+  pages/pessoal/     MeuDia, Biblia, Leitura, Metas, Habitos, Tarefas, Diario
   components/     layout/ (LayoutModulo, TrocarModulo, LayoutFinanceiro, LayoutTriathlon),
-                  login/ (fundo animado), dashboard/, economia/, contas/, triathlon/ (agenda/, corpo/, forca/), ui/ (shadcn)
-  hooks/          useDados, useEconomia, useTriathlon (React Query), useAuth, useTema, useCompetencia
+                  login/ (fundo animado), dashboard/, economia/, contas/, triathlon/ (agenda/, corpo/, forca/),
+                  pessoal/ (biblia/, metas/, habitos/, tarefas/), ui/ (shadcn)
+  hooks/          useDados, useEconomia, useTriathlon, usePessoal, useBiblia (React Query), useAuth, useTema, useCompetencia
   lib/            format, exportar (Excel/CSV), triathlon (carga, forma, ritmos), corpo (IMC, gordura, faixas), agenda (semanas, metas, situação), forca/ (catálogo de exercícios, recomendação, progressão),
-                  importacaoArquivos (FIT/TCX/GPX/CSV)
+                  importacaoArquivos (FIT/TCX/GPX/CSV), pessoal (datas em São Paulo, planos, situação da leitura)
+scripts/          seed-biblia.mjs (importa a Bíblia) e biblia/sword.mjs (leitor do módulo da CrossWire)
 supabase/migrations/   SQL do banco
+tests/            banco/ (todas as migrações num Postgres de teste) e frontend/
 ```
 
 Para adicionar outros componentes do shadcn/ui: `npx shadcn@latest add <componente>`.
 
-Scripts: `npm run dev` · `npm run build` (verifica tipos e gera `dist/`) · `npm run preview`.
+Scripts: `npm run dev` · `npm run build` (verifica tipos e gera `dist/`) · `npm run preview` · `npm test` (testes de segurança e do banco) · `npm run seed:biblia` (importa a Bíblia, uma vez).

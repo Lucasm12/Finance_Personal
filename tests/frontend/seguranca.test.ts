@@ -175,11 +175,25 @@ describe('segredos e publicação', () => {
       return ext.test(nome) ? [caminho] : []
     })
 
-  // service_role (em base64 no JWT), chaves do Resend, Stripe, AWS, chave privada, segredos do tipo CLIENT_SECRET=...
-  const SEGREDOS = [/c2VydmljZV9yb2xl/, /"role"\s*:\s*"service_role"/, /\bre_[A-Za-z0-9]{20,}/, /\bsk_(live|test)_[A-Za-z0-9]{10,}/, /AKIA[0-9A-Z]{16}/, /-----BEGIN [A-Z ]*PRIVATE KEY-----/, /CLIENT_SECRET\s*=\s*[0-9a-f]{20,}/i]
+  // service_role (em base64 no JWT), chave secreta nova do Supabase, Resend, Stripe, AWS, chave privada, CLIENT_SECRET=...
+  const SEGREDOS = [
+    /c2VydmljZV9yb2xl/,
+    /"role"\s*:\s*"service_role"/,
+    /\bsb_secret_[A-Za-z0-9_-]{20,}/,
+    /\bre_[A-Za-z0-9]{20,}/,
+    /\bsk_(live|test)_[A-Za-z0-9]{10,}/,
+    /AKIA[0-9A-Z]{16}/,
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+    /CLIENT_SECRET\s*=\s*[0-9a-f]{20,}/i,
+  ]
 
-  it('nenhum segredo no código-fonte nem nas migrações', () => {
-    const lista = [...arquivos(path.join(RAIZ, 'src'), /\.(ts|tsx|css|js)$/), ...arquivos(path.join(RAIZ, 'supabase'), /\.sql$/), path.join(RAIZ, '.env.example')]
+  it('nenhum segredo no código-fonte, nos scripts nem nas migrações', () => {
+    const lista = [
+      ...arquivos(path.join(RAIZ, 'src'), /\.(ts|tsx|css|js)$/),
+      ...arquivos(path.join(RAIZ, 'scripts'), /\.(mjs|js|ts)$/),
+      ...arquivos(path.join(RAIZ, 'supabase'), /\.sql$/),
+      path.join(RAIZ, '.env.example'),
+    ]
     for (const f of lista) {
       const conteudo = readFileSync(f, 'utf8')
       for (const padrao of SEGREDOS) expect(padrao.test(conteudo), `${path.relative(RAIZ, f)} contém ${padrao}`).toBe(false)

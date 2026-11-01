@@ -1,6 +1,6 @@
-import { BikeIcon, WalletIcon, type LucideIcon } from 'lucide-react'
+import { BikeIcon, SunriseIcon, WalletIcon, type LucideIcon } from 'lucide-react'
 
-export type IdModulo = 'financeiro' | 'triathlon'
+export type IdModulo = 'financeiro' | 'triathlon' | 'pessoal'
 
 export interface Modulo {
   id: IdModulo
@@ -27,8 +27,16 @@ export const MODULO_TRIATHLON: Modulo = {
   icone: BikeIcon,
 }
 
+export const MODULO_PESSOAL: Modulo = {
+  id: 'pessoal',
+  nome: 'Pessoal',
+  descricao: 'Meu dia, metas do ano, leitura da Bíblia, hábitos e diário.',
+  rota: '/pessoal',
+  icone: SunriseIcon,
+}
+
 /** Módulos mostrados depois do login, na ordem. */
-export const MODULOS: Modulo[] = [MODULO_FINANCEIRO, MODULO_TRIATHLON]
+export const MODULOS: Modulo[] = [MODULO_FINANCEIRO, MODULO_TRIATHLON, MODULO_PESSOAL]
 
 /** Rotas do módulo Financeiro. */
 export const ROTAS_FINANCEIRO = {
@@ -50,6 +58,19 @@ export const ROTAS_TRIATHLON = {
   corpo: '/triathlon/corpo',
   perfil: '/triathlon/perfil',
 }
+
+/** Rotas do módulo Pessoal. */
+export const ROTAS_PESSOAL = {
+  dia: '/pessoal',
+  biblia: '/pessoal/biblia',
+  metas: '/pessoal/metas',
+  habitos: '/pessoal/habitos',
+  tarefas: '/pessoal/tarefas',
+  diario: '/pessoal/diario',
+}
+
+/** Tela de leitura de um capítulo. */
+export const rotaLeitura = (livro: number, capitulo: number) => `/pessoal/biblia/${livro}/${capitulo}`
 
 const CHAVE_ULTIMO = 'ultimo-modulo'
 

@@ -34,7 +34,8 @@ export function mensagemErro(erro: unknown): string {
   const e = (erro ?? {}) as ErroComCodigo
   if (e.code && AUTH[e.code]) return AUTH[e.code]
   if (e.code && POSTGRES[e.code]) return POSTGRES[e.code]
-  if (e.code === 'PGRST204' || e.code === 'PGRST205' || e.code === '42703' || e.code === '42P01') {
+  // coluna, tabela ou função (PGRST202) que o banco ainda não tem
+  if (['PGRST202', 'PGRST204', 'PGRST205', '42703', '42P01', '42883'].includes(e.code ?? '')) {
     const coluna = /'([^']+)' column/.exec(e.message ?? '')?.[1]
     return coluna ? `${BANCO_DESATUALIZADO} (falta a coluna “${coluna}”)` : BANCO_DESATUALIZADO
   }

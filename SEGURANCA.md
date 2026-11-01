@@ -97,6 +97,15 @@ npm audit               # dependências
 
 Resultado em 01/11/2026: **62 testes passando**, `npm audit`: 0 vulnerabilidades, `tsc` e build sem erros.
 
+- **Módulo Pessoal** ([tests/banco/pessoal.test.ts](tests/banco/pessoal.test.ts) e
+  [tests/frontend/pessoal.test.ts](tests/frontend/pessoal.test.ts)): Bíblia somente leitura (alterar, inserir e
+  apagar dão “permission denied”; anônimo não lê); IDOR em 7 tabelas novas; FK composta em 8 vínculos (objetivo →
+  área, meta → objetivo, progresso/marco → meta, registro → hábito, tarefa → meta/área, meta → prova); views e
+  funções de cálculo só enxergam os dados de quem consulta; limites (diário, gratidão, humor, frequência, 3
+  prioridades por dia); exclusão de conta apaga o módulo; e os cálculos (sequência no fuso de São Paulo, meta diária,
+  adiantado/atrasado, hábitos, metas, resumo da semana). No frontend: leitor do módulo da Bíblia usado pelo seed e
+  conferência do texto antes de gravar. Total do projeto em 01/11/2026: **107 testes passando**.
+
 **Não testado aqui**: o projeto Supabase real (as migrações foram validadas no PGlite, não no seu banco), os
 cabeçalhos servidos de fato pela Vercel, e varreduras dinâmicas (OWASP ZAP) e SAST (Semgrep) — recomendadas na seção 7.
 
@@ -110,6 +119,7 @@ cabeçalhos servidos de fato pela Vercel, e varreduras dinâmicas (OWASP ZAP) e 
 | Lembrete para qualquer endereço | Regra de negócio: pode mandar para outra pessoa da família | Link e frequência travados; com cadastro fechado, só contas autorizadas |
 | `style-src 'unsafe-inline'` na CSP | Gráficos e componentes usam estilo inline | Scripts continuam bloqueados |
 | Backups | Plano gratuito do Supabase não tem backup automático | Seção 6 (exportação e plano pago) |
+| Chave secreta no seed da Bíblia | Gravar o texto exige ignorar o RLS (as tabelas da Bíblia são somente leitura para o app) | O script roda só no computador do dono, lê a chave do terminal, recusa a chave pública e nunca a imprime; não vai para a Vercel nem para o git (veja o README) |
 | Demonstrações da ExerciseDB | Serviço de terceiros, limite de consultas estrito, uso só não comercial com crédito | Tempo limite, validação, cache; crédito na tela |
 
 ## 6. Configuração de produção (faça no painel)
@@ -154,6 +164,8 @@ cabeçalhos servidos de fato pela Vercel, e varreduras dinâmicas (OWASP ZAP) e 
 | Treinos, agenda, metas, provas, rotinas e cargas | Acompanhamento esportivo | Execução do serviço | Até apagar ou excluir a conta |
 | Nascimento, sexo, altura, peso, medidas, bioimpedância | Cálculos de IMC, gordura e gasto (**dado de saúde — sensível**) | Consentimento do titular (art. 11) | Até apagar ou excluir a conta |
 | Refeições e alimentos | Balanço calórico | Execução do serviço | Até apagar ou excluir a conta |
+| Objetivos, metas, hábitos, tarefas, revisões | Organização pessoal | Execução do serviço | Até apagar ou excluir a conta |
+| Diário (humor, gratidão, texto) e leitura bíblica (capítulos, anotações, versículos marcados) | Acompanhamento pessoal e espiritual (**convicção religiosa e estado emocional — sensíveis**) | Consentimento do titular (art. 11) | Até apagar ou excluir a conta |
 | Auditoria (só identificadores) | Segurança e investigação de incidentes | Legítimo interesse | 1 ano |
 
 Direitos do titular no app: consulta e portabilidade (**Baixar meus dados**), correção (edição em cada tela) e
