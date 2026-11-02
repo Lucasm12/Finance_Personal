@@ -108,14 +108,31 @@ export function useTreinosPeriodo(inicio: string, fim: string) {
   })
 }
 
+/** Treino da Agenda que a atividade concluiu (public.vincular_ao_planejado). */
+export interface VinculoPlanejado {
+  planejado_id: string
+  nome: string
+  data: string
+  treino_id: string
+}
+
+/** Salva o treino. Um treino novo já conclui o planejado do dia na Agenda, se houver um só. */
 export function useSalvarTreino() {
   const invalidar = useInvalidar()
   return useMutation({
-    mutationFn: async ({ id, dados }: { id?: string; dados: Partial<TreinoInput> }) =>
-      id
-        ? verificar(await supabase.from('treinos').update(dados).eq('id', id))
-        : verificar(await supabase.from('treinos').insert(dados)),
-    onSuccess: () => invalidar(chavesTri.treinos),
+    mutationFn: async ({ id, dados }: { id?: string; dados: Partial<TreinoInput> }) => {
+      if (id) {
+        verificar(await supabase.from('treinos').update(dados).eq('id', id))
+        return { vinculo: null }
+      }
+      const criado = verificar(await supabase.from('treinos').insert(dados).select('id').single()) as { id: string }
+      const { data, error } = await supabase.rpc('vincular_ao_planejado', { p_treino: criado.id })
+      // sem a migração 12 a função não existe: o treino fica salvo, só não conclui o planejado
+      if (error && error.code !== 'PGRST202') throw error
+      const r = data as Partial<VinculoPlanejado> | null
+      return { vinculo: r?.planejado_id ? ({ ...r, treino_id: criado.id } as VinculoPlanejado) : null }
+    },
+    onSuccess: () => invalidar(chavesTri.treinos, chavesTri.agenda),
     onError: avisarErro,
   })
 }
@@ -134,6 +151,8 @@ export interface TreinoParaImportar extends TreinoLido {
   origem_id: string
   /** já existe no app: completa o existente com as medidas e as parciais em vez de ignorar */
   completar?: boolean
+  /** treino planejado que esta atividade conclui (escolhido pelo usuário); sem ele, vale o único pendente do dia */
+  planejado?: string | null
 }
 
 export interface ResultadoImportacao {
@@ -142,6 +161,10 @@ export interface ResultadoImportacao {
   parciais: number
   /** já existiam e ficaram de fora */
   ignorados: { origem_id: string; treino_id: string; nome: string }[]
+  /** treinos da Agenda concluídos pela importação */
+  vinculados: VinculoPlanejado[]
+  /** treinos sem vínculo porque havia mais de um planejado da modalidade no dia */
+  ambiguos: number
 }
 
 /**
@@ -153,7 +176,7 @@ export function useImportarTreinos() {
   const invalidar = useInvalidar()
   return useMutation({
     mutationFn: async (treinos: TreinoParaImportar[]) => {
-      const total: ResultadoImportacao = { novos: 0, completados: 0, parciais: 0, ignorados: [] }
+      const total: ResultadoImportacao = { novos: 0, completados: 0, parciais: 0, ignorados: [], vinculados: [], ambiguos: 0 }
       const lotes: TreinoParaImportar[][] = [[]]
       let parciaisNoLote = 0
       for (const t of treinos) {
@@ -166,16 +189,20 @@ export function useImportarTreinos() {
         parciaisNoLote += t.parciais.length
       }
       for (const lote of lotes.filter((l) => l.length)) {
-        const itens = lote.map(({ arquivo, parciais, completar, ...t }) => ({
+        const itens = lote.map(({ arquivo, parciais, completar, planejado, ...t }) => ({
           treino: { ...t, dados: { arquivo } },
           parciais,
           completar: !!completar,
+          planejado: planejado ?? null,
         }))
         const r = verificar(await supabase.rpc('importar_treinos', { p_itens: itens })) as ResultadoImportacao
         total.novos += r.novos
         total.completados += r.completados
         total.parciais += r.parciais
         total.ignorados.push(...r.ignorados)
+        // o banco da migração 11 ainda não devolve os vínculos (a 12 sim)
+        total.vinculados.push(...(r.vinculados ?? []))
+        total.ambiguos += r.ambiguos ?? 0
       }
       return total
     },

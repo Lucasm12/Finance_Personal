@@ -31,6 +31,7 @@ com `LayoutModulo` (veja [LayoutTriathlon.tsx](src/components/layout/LayoutTriat
    9. [supabase/migrations/20261101150000_seguranca.sql](supabase/migrations/20261101150000_seguranca.sql) — **segurança**: cadastro só para e-mails autorizados, proteção do lembrete, limites de tamanho, auditoria e exclusão de conta. Veja [SEGURANCA.md](SEGURANCA.md)
    10. [supabase/migrations/20261102120000_pessoal.sql](supabase/migrations/20261102120000_pessoal.sql) — módulo **Pessoal**: livros da Bíblia e planos de leitura, objetivos, metas, hábitos, tarefas, diário, revisões e os cálculos (sequências, progresso, atrasos). Pode rodar de novo sem problema. **Depois dela, importe o texto da Bíblia uma vez:** veja [Bíblia: importar o texto](#bíblia-importar-o-texto-uma-vez)
    11. [supabase/migrations/20261102130000_endurance.sql](supabase/migrations/20261102130000_endurance.sql) — **parciais** dos treinos importados, **sugestões salvas** de corrida/pedal/natação, estrutura do treino planejado, importação sem duplicidade (`importar_treinos`) e vínculo com a **AI Endurance**. Pode rodar de novo sem problema
+   12. [supabase/migrations/20261102140000_vinculo_importacao.sql](supabase/migrations/20261102140000_vinculo_importacao.sql) — treino importado ou registrado à mão **conclui sozinho o treino planejado** do dia na Agenda (`vincular_ao_planejado`). Rode depois da 11; pode rodar de novo sem problema
 
    > Se usar a Supabase CLI: `supabase link --project-ref SEU-REF` e depois `supabase db push`.
 
@@ -282,6 +283,16 @@ Não há conexão com Strava ou TrainingPeaks. Os treinos entram **à mão** (Tr
 - **AI Endurance**: busca as atividades da sua conta (corrida, pedal e natação), se a [integração](#integração-ai-endurance-opcional)
   estiver configurada.
 
+**Direto do treino planejado:** na Agenda (lista do dia, visão da semana) e no card de hoje do Painel, cada treino de
+corrida, pedal ou natação ainda sem atividade tem o botão **Importar o treino feito** (ícone de arquivo com seta). A
+atividade escolhida conclui aquele treino, com a distância e o tempo feitos, e já entra no planejado × realizado. O
+mesmo atalho aparece ao tocar em ✓ (concluir).
+
+**Vínculo automático:** importando pela tela Treinos (ou registrando à mão em **Novo treino**), se no dia houver
+**um único** treino planejado **pendente** da mesma modalidade, ele é concluído sozinho e vinculado à atividade (o dia
+é o de São Paulo). Com dois ou mais planejados da modalidade no dia, nada é escolhido: conclua o certo na Agenda.
+Treinos marcados como perdido não são tocados. A prévia avisa antes de gravar (“Vai concluir “Tempo run” da Agenda”).
+
 A prévia mostra data, duração, distância, FC, potência e quantas parciais vieram. **Duplicidade**: é o mesmo treino
 quando a modalidade é igual e o início difere em até 3 minutos — venha de arquivo, da AI Endurance ou de registro à
 mão. Ele aparece como **já existe** e fica de fora; marque a caixa para **completar** o treino existente com as medidas
@@ -501,7 +512,8 @@ Enquanto o texto não for importado, o app mostra um aviso na tela da Bíblia (o
 | `lembretes_email` | para qual e-mail enviar o lembrete de cada usuário (ativo/inativo, último envio) |
 | `treinos` | atividades (manual, arquivo ou AI Endurance); `unique (user_id, origem, origem_id)` evita importar o mesmo arquivo duas vezes |
 | `treino_parciais` | parciais de cada treino: `tipo` (km, volta, intervalo, piscina), `ordem`, tempo, distância, FC média/máx, potência, cadência, subida/descida, braçadas, estilo, `descanso`; `unique (treino_id, tipo, ordem)`; apagar o treino apaga as parciais |
-| `importar_treinos(jsonb)` | grava treinos importados com as parciais em uma transação, sem duplicar (mesma chave ou mesma modalidade a até 3 min); `completar` atualiza o existente |
+| `importar_treinos(jsonb)` | grava treinos importados com as parciais em uma transação, sem duplicar (mesma chave ou mesma modalidade a até 3 min); `completar` atualiza o existente; cada treino conclui o planejado escolhido (`planejado` no item) ou o único pendente do dia |
+| `vincular_ao_planejado(treino, planejado)` | liga a atividade a um treino planejado e o marca como concluído com a distância e o tempo feitos (usada também no registro à mão) |
 | `sugestoes_salvas` | treinos de corrida/pedal/natação guardados: objetivo, nível, `fonte` (catálogo, AI Endurance, personalizada), `referencia`, duração, distância e `estrutura` (jsonb); `unique (user_id, fonte, referencia, nivel)` |
 | `privado.ai_endurance_atletas`, `ai_endurance_atleta()` | qual atleta da AI Endurance é de qual usuário (só o dono do projeto grava; a função devolve só o do próprio usuário) |
 | `perfil_atleta` | limiares (FTP, FC, pace, CSS) e metas de peso/nutrição |

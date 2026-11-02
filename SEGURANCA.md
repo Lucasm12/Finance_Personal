@@ -144,7 +144,7 @@ Resultado em 01/11/2026: **62 testes passando**, `npm audit`: 0 vulnerabilidades
   para o usuário. Na função da Vercel: sem token, token inválido, ação/método/modalidade/página inválidos, `?user=` da
   URL ignorado, chave de parceiro ausente das respostas (inclusive em erro), 401/404/429/5xx/tempo limite/resposta não
   JSON da AI Endurance e filtragem dos dados do atleta. Também: cálculo das parciais, `.fit` gerado com o encoder
-  oficial, catálogo, zonas, recomendação e planejado × realizado. Total do projeto em 02/11/2026: **232 testes passando**.
+  oficial, catálogo, zonas, recomendação e planejado × realizado. Vínculo com o treino planejado ([tests/banco/vinculo.test.ts](tests/banco/vinculo.test.ts)): automático só sem dúvida, dia de São Paulo, planejado de outra pessoa ou de outra modalidade intocado, uma atividade não conta para dois planejados. Total do projeto em 02/11/2026: **243 testes passando**.
 
 **Não testado aqui**: o projeto Supabase real (as migrações foram validadas no PGlite, não no seu banco), os
 cabeçalhos servidos de fato pela Vercel, e varreduras dinâmicas (OWASP ZAP) e SAST (Semgrep) — recomendadas na seção 7.

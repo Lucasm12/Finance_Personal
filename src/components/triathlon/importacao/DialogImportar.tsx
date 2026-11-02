@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { CloudDownloadIcon, FileUpIcon, LoaderCircleIcon, SparklesIcon, TriangleAlertIcon } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { CalendarCheckIcon, CloudDownloadIcon, FileUpIcon, LoaderCircleIcon, SparklesIcon, TriangleAlertIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -11,10 +11,11 @@ import { buscarAtividadesAiEndurance, useStatusAiEndurance } from '@/hooks/useAi
 import { useImportarTreinos, type ResultadoImportacao, type TreinoParaImportar } from '@/hooks/useTriathlon'
 import { chaveImportacao, lerArquivos } from '@/lib/importacao/arquivos'
 import { buscarExistentes, type Existente } from '@/lib/importacao/duplicidade'
+import { buscarPlanejados, melhorParaPlanejado, vinculoAutomatico, type PlanejadoResumo, type Vinculo } from '@/lib/importacao/vinculo'
 import { mensagemErro } from '@/lib/erros'
-import { duracaoCurta, formatarDistancia, MODALIDADES, MODALIDADES_TRI, ORDEM_MODALIDADES } from '@/lib/triathlon'
+import { diaMesCurto, duracaoCurta, formatarDistancia, MODALIDADES, MODALIDADES_TRI, ORDEM_MODALIDADES } from '@/lib/triathlon'
 import { cn } from '@/lib/utils'
-import type { Modalidade, ModalidadeEndurance } from '@/types/triathlon'
+import type { Modalidade, ModalidadeEndurance, TreinoPlanejado } from '@/types/triathlon'
 
 type Fonte = 'arquivo' | 'ai_endurance'
 
@@ -27,13 +28,29 @@ interface Item extends TreinoParaImportar {
 const ORIGEM: Record<Existente['origem'], string> = { manual: 'registrado à mão', arquivo: 'de arquivo', ai_endurance: 'da AI Endurance' }
 
 function resumo(r: ResultadoImportacao): string {
+  const nomes = r.vinculados.map((v) => `“${v.nome}”`)
   const partes = [
     r.novos ? `${r.novos} treino(s) importado(s)` : null,
     r.completados ? `${r.completados} completado(s)` : null,
     r.parciais ? `${r.parciais} parciais salvas` : null,
     r.ignorados.length ? `${r.ignorados.length} já existia(m) e ficou(aram) de fora` : null,
+    nomes.length ? `${nomes.length > 3 ? `${nomes.length} treinos` : nomes.join(', ')} concluído(s) na Agenda` : null,
+    r.ambiguos ? `${r.ambiguos} sem vínculo por haver mais de um planejado no dia (conclua na Agenda)` : null,
   ].filter(Boolean)
   return partes.join(' · ')
+}
+
+/** Selo na prévia: qual treino da Agenda esta atividade vai concluir. */
+function SeloVinculo({ vinculo }: { vinculo: Vinculo }) {
+  if (!vinculo) return null
+  if ('candidatos' in vinculo)
+    return <div className="text-muted-foreground mt-0.5 text-xs">{vinculo.candidatos} treinos planejados nesse dia: conclua o certo na Agenda.</div>
+  return (
+    <div className="text-status-bom mt-0.5 flex items-center gap-1 text-xs font-medium">
+      <CalendarCheckIcon className="size-3.5" aria-hidden />
+      Vai concluir “{vinculo.planejado.nome}” da Agenda ({diaMesCurto(vinculo.planejado.data)})
+    </div>
+  )
 }
 
 /** Escolha das modalidades e busca na AI Endurance (estado da integração incluído). */
@@ -90,7 +107,14 @@ function PainelAiEndurance({ ativo, lendo, onBuscar }: { ativo: boolean; lendo: 
   )
 }
 
-export function DialogImportar({ aberto, onFechar }: { aberto: boolean; onFechar: () => void }) {
+interface Props {
+  aberto: boolean
+  onFechar: () => void
+  /** importar o treino feito de um planejado da Agenda: a atividade escolhida conclui esse planejado */
+  planejado?: TreinoPlanejado | null
+}
+
+export function DialogImportar({ aberto, onFechar, planejado = null }: Props) {
   const importar = useImportarTreinos()
   const entrada = useRef<HTMLInputElement>(null)
   const [fonte, setFonte] = useState<Fonte>('arquivo')
@@ -98,19 +122,39 @@ export function DialogImportar({ aberto, onFechar }: { aberto: boolean; onFechar
   const [avisos, setAvisos] = useState<string[]>([])
   const [lendo, setLendo] = useState(false)
   const [arrastando, setArrastando] = useState(false)
+  const [planejados, setPlanejados] = useState<PlanejadoResumo[]>([])
+  /** com um planejado escolhido: qual atividade lida é a dele */
+  const [escolhido, setEscolhido] = useState<number | null>(null)
 
   function fechar() {
     setItens(null)
     setAvisos([])
+    setEscolhido(null)
     onFechar()
   }
 
   /** Marca o que já existe no app (fica de fora, a não ser que o usuário peça para completar). */
   async function preparar(treinos: TreinoParaImportar[], avisosLeitura: string[]) {
-    const existentes = await buscarExistentes(treinos)
+    const [existentes, doPeriodo] = await Promise.all([buscarExistentes(treinos), planejado ? Promise.resolve([]) : buscarPlanejados(treinos)])
     setItens(treinos.map((t, i) => ({ ...t, existente: existentes[i], marcado: !existentes[i] })))
+    setPlanejados(doPeriodo)
+    const melhor = planejado ? melhorParaPlanejado(treinos, planejado) : null
+    setEscolhido(melhor)
+    if (planejado && melhor === null && treinos.length)
+      avisosLeitura = [...avisosLeitura, `Nenhum treino de ${MODALIDADES[planejado.modalidade].nome.toLowerCase()} nos arquivos: “${planejado.nome}” não será concluído.`]
     setAvisos(avisosLeitura)
   }
+
+  // prévia do vínculo automático (o banco decide; aqui é só o aviso): um planejado por atividade, na ordem
+  const vinculos = useMemo(() => {
+    const usados = new Set<string>()
+    return (itens ?? []).map((t): Vinculo => {
+      if (planejado || !t.marcado || t.existente) return null
+      const v = vinculoAutomatico(t, planejados.filter((p) => !usados.has(p.id)))
+      if (v && 'planejado' in v) usados.add(v.planejado.id)
+      return v
+    })
+  }, [itens, planejados, planejado])
 
   async function lerDeArquivos(arquivos: File[]) {
     if (!arquivos.length) return
@@ -141,20 +185,27 @@ export function DialogImportar({ aberto, onFechar }: { aberto: boolean; onFechar
   }
 
   const alterar = (i: number, mudanca: Partial<Item>) => setItens((lista) => lista && lista.map((x, j) => (j === i ? { ...x, ...mudanca } : x)))
-  const selecionados = (itens ?? []).filter((x) => x.marcado)
+  // a atividade do planejado vai sempre (se já existia, o banco só faz o vínculo)
+  const selecionados = (itens ?? []).filter((x, i) => x.marcado || i === escolhido)
   const duplicados = (itens ?? []).filter((x) => x.existente)
 
   async function confirmar() {
     try {
       const r = await importar.mutateAsync(
         selecionados.map((x) => {
-          const t: TreinoParaImportar & Partial<Pick<Item, 'marcado' | 'existente'>> = { ...x, completar: !!x.existente }
+          const t: TreinoParaImportar & Partial<Pick<Item, 'marcado' | 'existente'>> = {
+            ...x,
+            completar: !!x.existente && x.marcado,
+            planejado: planejado && itens?.[escolhido ?? -1] === x ? planejado.id : null,
+          }
           delete t.marcado
           delete t.existente
           return t
         }),
       )
-      if (r.novos + r.completados === 0) toast.warning(`Nada novo: ${resumo(r) || 'todos os treinos já existiam'}.`)
+      if (planejado && escolhido !== null && !r.vinculados.some((v) => v.planejado_id === planejado.id))
+        toast.warning(`${resumo(r) || 'Nada gravado'}. “${planejado.nome}” não foi concluído: ele já tem uma atividade vinculada ou a do arquivo já conta para outro treino.`)
+      else if (r.novos + r.completados + r.vinculados.length === 0) toast.warning(`Nada novo: ${resumo(r) || 'todos os treinos já existiam'}.`)
       else toast.success(`${resumo(r)}.`)
       fechar()
     } catch {
@@ -166,9 +217,11 @@ export function DialogImportar({ aberto, onFechar }: { aberto: boolean; onFechar
     <Dialog open={aberto} onOpenChange={(v) => !v && fechar()}>
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Importar treino</DialogTitle>
+          <DialogTitle>{planejado ? 'Importar o treino feito' : 'Importar treino'}</DialogTitle>
           <DialogDescription>
-            Traga treinos já realizados, com as parciais (por km, por volta, por piscina). O que já existe no app é avisado e não é duplicado.
+            {planejado
+              ? `Para “${planejado.nome}” (${MODALIDADES[planejado.modalidade].nome.toLowerCase()}, ${diaMesCurto(planejado.data)}). A atividade importada conclui este treino da Agenda, com a distância e o tempo feitos, e entra no planejado × realizado.`
+              : 'Traga treinos já realizados, com as parciais (por km, por volta, por piscina). O que já existe no app é avisado e não é duplicado; se houver um treino planejado da mesma modalidade no dia, ele já é concluído.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -263,6 +316,20 @@ export function DialogImportar({ aberto, onFechar }: { aberto: boolean; onFechar
                         Igual a “{t.existente.nome}” ({ORIGEM[t.existente.origem]}, {new Date(t.existente.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}).{' '}
                         {t.marcado ? 'Vai completar esse treino com as medidas e parciais daqui (nome e anotações continuam).' : 'Marque para completar esse treino em vez de ignorar.'}
                       </div>
+                    )}
+                    {planejado ? (
+                      t.modalidade === planejado.modalidade && (
+                        <label className="mt-1 flex w-fit cursor-pointer items-center gap-1.5 text-xs">
+                          <input type="radio" name="do-planejado" className="accent-[var(--primary)]" checked={escolhido === i} onChange={() => setEscolhido(i)} />
+                          {escolhido === i ? (
+                            <span className="text-status-bom font-medium">Conclui “{planejado.nome}” da Agenda</span>
+                          ) : (
+                            <span className="text-muted-foreground">É o treino de “{planejado.nome}”</span>
+                          )}
+                        </label>
+                      )
+                    ) : (
+                      <SeloVinculo vinculo={vinculos[i]} />
                     )}
                   </div>
                   <NativeSelect

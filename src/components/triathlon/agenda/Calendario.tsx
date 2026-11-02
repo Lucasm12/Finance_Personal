@@ -252,7 +252,9 @@ export function DialogDia({ data, treinos, provas, onFechar, onNovo, onEditar }:
             <DialogHeader>
               <DialogTitle>{diaPorExtenso(data)}</DialogTitle>
               <DialogDescription>
-                {lista.length ? 'Marque a situação de cada treino ou toque no nome para editar e reagendar.' : 'Nenhum treino planejado neste dia.'}
+                {lista.length
+                  ? 'Marque a situação de cada treino, importe o treino feito (botão com a seta) ou toque no nome para editar e reagendar.'
+                  : 'Nenhum treino planejado neste dia.'}
               </DialogDescription>
             </DialogHeader>
             {provasDia.map((p) => (

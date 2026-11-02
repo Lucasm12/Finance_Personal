@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { PencilIcon } from 'lucide-react'
+import { FileUpIcon, PencilIcon } from 'lucide-react'
 
 import { DialogConcluir } from '@/components/triathlon/agenda/DialogConcluir'
 import { DialogExecucao } from '@/components/triathlon/forca/DialogExecucao'
+import { DialogImportar } from '@/components/triathlon/importacao/DialogImportar'
 import { IconeModalidade } from '@/components/triathlon/LinhaTreino'
 import { Button } from '@/components/ui/button'
 import { useMudarStatusTreino } from '@/hooks/useTriathlon'
@@ -74,9 +75,12 @@ export function ItemPlanejado({ treino: t, onEditar, dia }: Props) {
   const mudar = useMudarStatusTreino()
   const [concluindo, setConcluindo] = useState(false)
   const [executando, setExecutando] = useState(false)
+  const [importando, setImportando] = useState(false)
   const efetivo = statusEfetivo(t)
   // academia com exercícios: o registro é série por série
   const exercicios = t.modalidade === 'forca' ? (t.exercicios ?? []) : []
+  // corrida, pedal e natação ainda sem atividade: dá para importar o arquivo do treino feito
+  const podeImportar = t.modalidade !== 'forca' && !t.treino_id
 
   function mudarStatus(s: StatusTreino) {
     // concluído abre os campos do que foi feito (também para corrigir um já concluído)
@@ -118,13 +122,37 @@ export function ItemPlanejado({ treino: t, onEditar, dia }: Props) {
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
+        {podeImportar && (
+          <Button
+            variant="outline"
+            size="icon-sm"
+            className="size-8"
+            aria-label={`Importar o treino feito de ${t.nome}`}
+            title="Importar o treino feito (arquivo ou AI Endurance)"
+            onClick={() => setImportando(true)}
+          >
+            <FileUpIcon />
+          </Button>
+        )}
         <ControleStatus status={t.status} onMudar={mudarStatus} disabled={mudar.isPending} />
         <Button variant="ghost" size="icon-sm" className="text-muted-foreground hidden sm:inline-flex" aria-label={`Editar ${t.nome}`} onClick={() => onEditar(t)}>
           <PencilIcon />
         </Button>
       </div>
-      <DialogConcluir treino={concluindo ? t : null} onFechar={() => setConcluindo(false)} />
+      <DialogConcluir
+        treino={concluindo ? t : null}
+        onFechar={() => setConcluindo(false)}
+        onImportar={
+          podeImportar
+            ? () => {
+                setConcluindo(false)
+                setImportando(true)
+              }
+            : undefined
+        }
+      />
       <DialogExecucao treino={executando ? t : null} onFechar={() => setExecutando(false)} />
+      {t.modalidade !== 'forca' && <DialogImportar aberto={importando} planejado={t} onFechar={() => setImportando(false)} />}
     </li>
   )
 }

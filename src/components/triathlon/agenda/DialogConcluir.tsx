@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { LoaderCircleIcon } from 'lucide-react'
+import { FileUpIcon, LoaderCircleIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,7 @@ const lerNumero = (t: string) => {
 }
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
-function FormConcluir({ treino: t, onFechar }: { treino: TreinoPlanejado; onFechar: () => void }) {
+function FormConcluir({ treino: t, onFechar, onImportar }: { treino: TreinoPlanejado; onFechar: () => void; onImportar?: () => void }) {
   const mudar = useMudarStatusTreino()
   const atividades = useTreinosPeriodo(t.data, t.data)
   const candidatas = (atividades.data ?? []).filter((a) => a.modalidade === t.modalidade)
@@ -99,6 +99,18 @@ function FormConcluir({ treino: t, onFechar }: { treino: TreinoPlanejado; onFech
           {t.distancia_planejada_m ? ` (planejado: ${distanciaTexto(t.modalidade, t.distancia_planejada_m)})` : ''}.
         </DialogDescription>
       </DialogHeader>
+
+      {onImportar && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2 text-sm">
+          <span className="text-muted-foreground">
+            {candidatas.length ? 'O treino do relógio ainda não está aí?' : 'Tem o arquivo do relógio ou o treino na AI Endurance?'}
+          </span>
+          <Button type="button" variant="outline" size="sm" onClick={onImportar}>
+            <FileUpIcon />
+            Importar o treino feito
+          </Button>
+        </div>
+      )}
 
       {candidatas.length > 0 && (
         <fieldset className="grid gap-1.5">
@@ -189,11 +201,11 @@ function FormConcluir({ treino: t, onFechar }: { treino: TreinoPlanejado; onFech
   )
 }
 
-/** Marca um treino planejado como concluído, com os dados realizados. */
-export function DialogConcluir({ treino, onFechar }: { treino: TreinoPlanejado | null; onFechar: () => void }) {
+/** Marca um treino planejado como concluído, com os dados realizados (ou leva para importar o treino feito). */
+export function DialogConcluir({ treino, onFechar, onImportar }: { treino: TreinoPlanejado | null; onFechar: () => void; onImportar?: () => void }) {
   return (
     <Dialog open={treino !== null} onOpenChange={(v) => !v && onFechar()}>
-      <DialogContent className="sm:max-w-md">{treino && <FormConcluir key={treino.id} treino={treino} onFechar={onFechar} />}</DialogContent>
+      <DialogContent className="sm:max-w-md">{treino && <FormConcluir key={treino.id} treino={treino} onFechar={onFechar} onImportar={onImportar} />}</DialogContent>
     </Dialog>
   )
 }

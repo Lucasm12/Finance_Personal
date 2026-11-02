@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import { lerFit } from '@/lib/importacao/arquivos'
 import { acharExistente } from '@/lib/importacao/duplicidade'
+import { melhorParaPlanejado, vinculoAutomatico, type PlanejadoResumo } from '@/lib/importacao/vinculo'
 import { lerAtividade, lerAtividades, listaDe } from '@/lib/integracao-ai-endurance/atividades'
 import { estruturaDosSteps, lerTreinosDoPlano } from '@/lib/integracao-ai-endurance/treinos'
 import { destaques, montarParciais, parciaisPorDistancia, type Amostra } from '@/lib/parciais/calculo'
@@ -192,6 +193,34 @@ describe('duplicidade na prévia', () => {
     expect(acharExistente({ modalidade: 'corrida', data_hora: '2026-11-01T09:00:00Z' }, existentes)?.id).toBe('b')
     expect(acharExistente({ modalidade: 'corrida', data_hora: '2026-11-01T09:10:00Z' }, existentes)).toBeNull()
     expect(acharExistente({ modalidade: 'natacao', data_hora: '2026-11-01T09:00:00Z' }, existentes)).toBeNull()
+  })
+})
+
+describe('vínculo com o treino planejado na prévia', () => {
+  const p = (id: string, data: string, modalidade: PlanejadoResumo['modalidade'], extra: Partial<PlanejadoResumo> = {}): PlanejadoResumo => ({
+    id,
+    data,
+    modalidade,
+    nome: id,
+    status: 'pendente',
+    treino_id: null,
+    ...extra,
+  })
+  // meio-dia local: o mesmo dia em qualquer fuso do Brasil
+  const corrida = (dia: string) => ({ modalidade: 'corrida' as const, data_hora: new Date(`${dia}T12:00:00`).toISOString() })
+
+  it('o único pendente da modalidade no dia; com dois, avisa quantos', () => {
+    const lista = [p('tempo', '2026-11-02', 'corrida'), p('nado', '2026-11-02', 'natacao'), p('feito', '2026-11-02', 'corrida', { treino_id: 'x', status: 'concluido' })]
+    expect(vinculoAutomatico(corrida('2026-11-02'), lista)).toEqual({ planejado: lista[0] })
+    expect(vinculoAutomatico(corrida('2026-11-02'), [...lista, p('outra', '2026-11-02', 'corrida')])).toEqual({ candidatos: 2 })
+    expect(vinculoAutomatico(corrida('2026-11-03'), lista)).toBeNull()
+    expect(vinculoAutomatico(corrida('2026-11-02'), [p('perdido', '2026-11-02', 'corrida', { status: 'perdido' })])).toBeNull()
+  })
+
+  it('para um planejado escolhido, sugere a atividade da mesma modalidade no dia mais próximo', () => {
+    const lidos = [{ modalidade: 'ciclismo' as const, data_hora: corrida('2026-11-02').data_hora }, corrida('2026-11-04'), corrida('2026-11-03')]
+    expect(melhorParaPlanejado(lidos, { data: '2026-11-02', modalidade: 'corrida' })).toBe(2)
+    expect(melhorParaPlanejado(lidos, { data: '2026-11-02', modalidade: 'natacao' })).toBeNull()
   })
 })
 

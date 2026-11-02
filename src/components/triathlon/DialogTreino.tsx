@@ -190,8 +190,8 @@ function FormTreino({ treino, perfil, onFechar }: FormProps) {
       ...(treino ? {} : { origem: 'manual' as const }),
     }
     try {
-      await salvar.mutateAsync({ id: treino?.id, dados })
-      toast.success(treino ? 'Treino atualizado.' : 'Treino registrado.')
+      const { vinculo } = await salvar.mutateAsync({ id: treino?.id, dados })
+      toast.success(treino ? 'Treino atualizado.' : vinculo ? `Treino registrado e “${vinculo.nome}” da Agenda concluído.` : 'Treino registrado.')
       onFechar()
     } catch {
       // erro já exibido pelo hook
