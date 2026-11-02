@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
 
 import { avisarErro, useInvalidar, verificar } from '@/hooks/useDados'
+import { planejarAgenda, substituivel, type AcademiaAgendada } from '@/lib/forca/agendamento'
 import type { TreinoLido } from '@/lib/importacao/arquivos'
 import { supabase } from '@/lib/supabase'
 import { dataLocal, diasEntre, somarDias } from '@/lib/triathlon'
@@ -722,7 +723,8 @@ export function useRegistrarExecucao() {
 /**
  * Coloca os treinos da rotina na agenda: a partir da semana `inicio`, por `semanas` semanas,
  * nos dias da semana indicados (1 = segunda), seguindo a sequência A, B, C… a partir de `primeiro`.
- * Dias que já têm treino de academia ficam de fora.
+ * Com `substituir`, a academia ainda não feita do período sai da agenda e dá lugar à rotina;
+ * o que já foi feito (ou tem séries registradas) fica, e o dia é pulado.
  */
 export function useAgendarRotina() {
   const invalidar = useInvalidar()
@@ -734,6 +736,7 @@ export function useAgendarRotina() {
       dias,
       primeiro,
       duracoes,
+      substituir,
     }: {
       rotina: RotinaForca
       inicio: string
@@ -742,27 +745,28 @@ export function useAgendarRotina() {
       primeiro: number
       /** minutos estimados de cada treino da rotina */
       duracoes: number[]
+      substituir: boolean
     }) => {
+      const hoje = dataLocal(new Date())
       const fim = somarDias(inicio, 7 * semanas - 1)
       const existentes = verificar(
-        await supabase.from('treinos_planejados').select('data').eq('modalidade', 'forca').gte('data', inicio).lte('data', fim),
-      ) as { data: string }[]
-      const ocupados = new Set(existentes.map((x) => x.data))
-      const ordenados = [...dias].sort((a, b) => a - b)
-      const linhas = []
-      let k = primeiro
-      let pulados = 0
-      for (let w = 0; w < semanas; w++) {
-        for (const dia of ordenados) {
-          const data = somarDias(inicio, 7 * w + dia - 1)
-          if (ocupados.has(data)) {
-            pulados++
-            continue
-          }
-          const indice = k % rotina.treinos.length
-          const t = rotina.treinos[indice]
-          k++
-          linhas.push({
+        await supabase.from('treinos_planejados').select('id, data, status').eq('modalidade', 'forca').gte('data', inicio).lte('data', fim),
+      ) as AcademiaAgendada[]
+      // apagar o planejado apaga as séries junto: quem tem séries nunca é substituído
+      const candidatos = existentes.filter((t) => substituivel(t, hoje)).map((t) => t.id)
+      if (substituir && candidatos.length) {
+        const comSeries = verificar(await supabase.from('series_forca').select('planejado_id').in('planejado_id', candidatos)) as {
+          planejado_id: string
+        }[]
+        const marcados = new Set(comSeries.map((s) => s.planejado_id))
+        for (const t of existentes) t.temSeries = marcados.has(t.id)
+      }
+      const plano = planejarAgenda({ inicio, semanas, dias, primeiro, total: rotina.treinos.length, existentes, substituir, hoje })
+      const linhas = plano.dias.flatMap(({ data, indice }) => {
+        if (indice === null) return []
+        const t = rotina.treinos[indice]
+        return [
+          {
             data,
             modalidade: 'forca' as const,
             nome: `Treino ${t.letra} — ${t.nome}`,
@@ -771,11 +775,13 @@ export function useAgendarRotina() {
             rotina_id: rotina.id,
             rotina_treino: t.letra,
             exercicios: t.exercicios,
-          })
-        }
-      }
+          },
+        ]
+      })
+      // insere antes de apagar: se algo falhar no meio, nenhum treino some da agenda
       if (linhas.length) verificar(await supabase.from('treinos_planejados').insert(linhas))
-      return { agendados: linhas.length, pulados }
+      if (plano.substituidos.length) verificar(await supabase.from('treinos_planejados').delete().in('id', plano.substituidos))
+      return { agendados: linhas.length, pulados: plano.dias.length - linhas.length, substituidos: plano.substituidos.length }
     },
     onSuccess: () => invalidar(chavesTri.agenda),
     onError: avisarErro,

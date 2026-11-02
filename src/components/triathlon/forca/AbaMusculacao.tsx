@@ -173,7 +173,7 @@ export function AbaMusculacao() {
                 </>
               }
             />
-            {!modo.id && ativa && <p className="text-muted-foreground text-xs">Ao salvar, esta passa a ser a rotina ativa; a atual fica guardada e os treinos já agendados não mudam.</p>}
+            {!modo.id && ativa && <p className="text-muted-foreground text-xs">Ao salvar, esta passa a ser a rotina ativa e a atual fica guardada. Ao colocar a nova na agenda, a academia ainda não feita do período é substituída.</p>}
           </CardContent>
         </Card>
       )}
