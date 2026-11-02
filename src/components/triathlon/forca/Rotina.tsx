@@ -28,7 +28,7 @@ export const FOCOS: Record<FocoForca, string> = {
 export const LOCAIS: Record<LocalForca, string> = { academia: 'Academia', casa: 'Em casa' }
 
 /** Botões de escolha única no padrão do app. */
-function Escolha<T extends string | number>({
+export function Escolha<T extends string | number>({
   valor,
   opcoes,
   onChange,
@@ -137,7 +137,7 @@ export function ConfigRotina({ config, onChange }: { config: ConfigForca; onChan
   )
 }
 
-function Lista({ itens, icone: Icone, classe }: { itens: string[]; icone: typeof InfoIcon; classe: string }) {
+export function Lista({ itens, icone: Icone, classe }: { itens: string[]; icone: typeof InfoIcon; classe: string }) {
   if (!itens.length) return null
   return (
     <ul className="grid gap-1.5">

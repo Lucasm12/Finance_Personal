@@ -17,7 +17,7 @@ import {
   idValido,
   pesquisarExercicios,
 } from '@/lib/forca/exercisedb'
-import { conferirZip, LIMITES, lerArquivos, tamanhoGz } from '@/lib/importacaoArquivos'
+import { conferirZip, LIMITES, lerArquivos, tamanhoGz } from '@/lib/importacao/arquivos'
 
 const RAIZ = path.resolve(import.meta.dirname, '../..')
 

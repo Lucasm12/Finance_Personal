@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarDaysIcon, CalendarRangeIcon, ChevronLeftIcon, ChevronRightIcon, DumbbellIcon, PlusIcon } from 'lucide-react'
+import { ActivityIcon, CalendarDaysIcon, CalendarRangeIcon, ChevronLeftIcon, ChevronRightIcon, DumbbellIcon, PlusIcon } from 'lucide-react'
 
 import { SeletorMes } from '@/components/SeletorMes'
 import { CalendarioMes, DialogDia, LegendaStatus, SemanaDetalhe } from '@/components/triathlon/agenda/Calendario'
@@ -9,6 +9,7 @@ import { DialogPlanejado } from '@/components/triathlon/agenda/DialogPlanejado'
 import { EvolucaoAgenda } from '@/components/triathlon/agenda/EvolucaoAgenda'
 import { PainelSemana } from '@/components/triathlon/agenda/PainelSemana'
 import { AbaMusculacao } from '@/components/triathlon/forca/AbaMusculacao'
+import { AbaEndurance } from '@/components/triathlon/sugestoes/AbaEndurance'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,7 +34,7 @@ export default function AgendaTriathlon() {
   // mês, semana e visão ficam na URL (?mes=2026-10&semana=2026-10-26&visao=semana)
   const competencia = competenciaDaUrl(params.get('mes')) ?? competenciaAtual()
   const visao: Visao = params.get('visao') === 'semana' ? 'semana' : 'mes'
-  const aba = params.get('aba') === 'musculacao' ? 'musculacao' : 'calendario'
+  const aba = params.get('aba') === 'musculacao' ? 'musculacao' : params.get('aba') === 'endurance' ? 'endurance' : 'calendario'
   const grade = semanasDoMes(competencia)
   const semanaUrl = params.get('semana')
   const semana = ehSegunda(semanaUrl)
@@ -103,6 +104,7 @@ export default function AgendaTriathlon() {
           [
             ['calendario', 'Calendário', CalendarDaysIcon],
             ['musculacao', 'Musculação', DumbbellIcon],
+            ['endurance', 'Endurance', ActivityIcon],
           ] as const
         ).map(([v, rotulo, Icone]) => (
           <button
@@ -124,6 +126,8 @@ export default function AgendaTriathlon() {
 
       {aba === 'musculacao' ? (
         <AbaMusculacao />
+      ) : aba === 'endurance' ? (
+        <AbaEndurance />
       ) : (
         <>
       <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">

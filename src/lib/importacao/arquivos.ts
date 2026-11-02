@@ -3,12 +3,16 @@
  *   .fit (Garmin, Wahoo, TrainingPeaks), .tcx, .gpx,
  *   .csv (resumo de treinos exportado pelo TrainingPeaks),
  *   .zip / .gz com esses arquivos (exportações em lote do TrainingPeaks e do Strava).
+ * De .fit, .tcx e .gpx saem também as parciais (por km, por volta, por piscina…).
  */
-import type { Modalidade, TreinoInput } from '@/types/triathlon'
+import { limparParcial, montarParciais, traduzirEstilo, type Amostra } from '@/lib/parciais/calculo'
+import type { Modalidade, ParcialInput, TreinoInput } from '@/types/triathlon'
 
 export type TreinoLido = Omit<TreinoInput, 'origem' | 'origem_id' | 'esforco_percebido' | 'observacao' | 'dados'> & {
   /** arquivo de onde veio (para mostrar na prévia) */
   arquivo: string
+  /** parciais extraídas do arquivo (vazio quando o formato não traz) */
+  parciais: ParcialInput[]
 }
 
 export interface ResultadoLeitura {
@@ -101,6 +105,7 @@ function treinoBase(arquivo: string, modalidade: Modalidade, nome: string, inici
     potencia_normalizada: null,
     cadencia_media: null,
     calorias: null,
+    parciais: [],
   }
 }
 
@@ -128,12 +133,14 @@ export function lerGpx(texto: string, arquivo = 'arquivo.gpx'): TreinoLido[] {
 
   let distancia = 0
   let emMovimento = 0
+  const acumulada = [0]
   for (let i = 1; i < pontos.length; i++) {
     const a = pontos[i - 1]
     const b = pontos[i]
     const d = Number.isFinite(a.lat) && Number.isFinite(b.lat) ? distanciaHaversine(a.lat, a.lon, b.lat, b.lon) : 0
     const dt = (b.tempo - a.tempo) / 1000
     distancia += d
+    acumulada.push(distancia)
     // conta como movimento intervalos curtos com velocidade acima de 0,5 m/s
     if (dt > 0 && dt <= 60 && d / dt > 0.5) emMovimento += dt
   }
@@ -141,6 +148,14 @@ export function lerGpx(texto: string, arquivo = 'arquivo.gpx'): TreinoLido[] {
   const total = (pontos.at(-1)!.tempo - pontos[0].tempo) / 1000
   const tipo = textoDe(doc, 'type')
   const modalidade = modalidadePorNome(tipo) ?? 'outro'
+  const amostras: Amostra[] = pontos.map((p, i) => ({
+    t: (p.tempo - pontos[0].tempo) / 1000,
+    d: acumulada[i],
+    fc: p.fc,
+    pot: p.pot,
+    cad: p.cad,
+    alt: p.ele,
+  }))
   const fcs = pontos.map((p) => p.fc).filter((x): x is number => x !== null && x > 0)
   const cads = pontos.map((p) => p.cad).filter((x): x is number => x !== null && x > 0)
   const pots = pontos.map((p) => p.pot).filter((x): x is number => x !== null)
@@ -156,6 +171,7 @@ export function lerGpx(texto: string, arquivo = 'arquivo.gpx'): TreinoLido[] {
       fc_max: inteiroEntre(fcs.length ? Math.max(...fcs) : null, 30, 250),
       cadencia_media: arred(media(cads), 1),
       potencia_media: inteiroEntre(media(pots), 0, 3000),
+      parciais: montarParciais(modalidade, amostras),
     },
   ]
 }
@@ -163,6 +179,10 @@ export function lerGpx(texto: string, arquivo = 'arquivo.gpx'): TreinoLido[] {
 // -----------------------------------------------------------------------------
 // TCX
 // -----------------------------------------------------------------------------
+
+/** Filho direto (sem descer na trilha da volta, que repete os mesmos nomes). */
+const filho = (el: Element, nome: string) => Array.from(el.children).find((c) => c.localName === nome) ?? null
+const textoFilho = (el: Element, nome: string) => filho(el, nome)?.textContent?.trim() ?? null
 
 export function lerTcx(texto: string, arquivo = 'arquivo.tcx'): TreinoLido[] {
   const doc = lerXml(texto)
@@ -178,14 +198,28 @@ export function lerTcx(texto: string, arquivo = 'arquivo.tcx'): TreinoLido[] {
     let calorias = 0
     let fcPonderada = 0
     let fcMax = 0
+    const parciaisVoltas: ParcialInput[] = []
     for (const volta of voltas) {
-      const t = numero(textoDe(volta, 'TotalTimeSeconds')) ?? 0
+      const t = numero(textoFilho(volta, 'TotalTimeSeconds')) ?? 0
+      const d = numero(textoFilho(volta, 'DistanceMeters'))
       tempo += t
-      distancia += numero(textoDe(volta, 'DistanceMeters')) ?? 0
-      calorias += numero(textoDe(volta, 'Calories')) ?? 0
-      const fcMedia = numero(porNome(volta, 'AverageHeartRateBpm')[0]?.textContent)
+      distancia += d ?? 0
+      calorias += numero(textoFilho(volta, 'Calories')) ?? 0
+      const fcMedia = numero(filho(volta, 'AverageHeartRateBpm')?.textContent)
+      const fcMaxVolta = numero(filho(volta, 'MaximumHeartRateBpm')?.textContent)
       if (fcMedia) fcPonderada += fcMedia * t
-      fcMax = Math.max(fcMax, numero(porNome(volta, 'MaximumHeartRateBpm')[0]?.textContent) ?? 0)
+      fcMax = Math.max(fcMax, fcMaxVolta ?? 0)
+      const extensoes = filho(volta, 'Extensions')
+      parciaisVoltas.push(
+        limparParcial('volta', parciaisVoltas.length + 1, {
+          duracao_seg: t,
+          distancia_m: d,
+          fc_media: fcMedia,
+          fc_max: fcMaxVolta,
+          potencia_media: extensoes ? numero(textoDe(extensoes, 'AvgWatts')) : null,
+          cadencia_media: numero(textoFilho(volta, 'Cadence')) ?? (extensoes ? numero(textoDe(extensoes, 'AvgRunCadence')) : null),
+        }),
+      )
     }
     const pontos = porNome(atividade, 'Trackpoint')
     const altitudes = pontos.map((p) => numero(textoDe(p, 'AltitudeMeters'))).filter((x): x is number => x !== null)
@@ -195,6 +229,29 @@ export function lerTcx(texto: string, arquivo = 'arquivo.tcx'): TreinoLido[] {
       .filter((x): x is number => x !== null && x > 0)
     const tempos = pontos.map((p) => Date.parse(textoDe(p, 'Time') ?? '')).filter(Number.isFinite)
     const total = tempos.length > 1 ? (tempos.at(-1)! - tempos[0]) / 1000 : null
+
+    // amostras para as parciais por distância (sem DistanceMeters, calcula pelas coordenadas)
+    const brutas = pontos
+      .map((p) => ({
+        tempo: Date.parse(textoDe(p, 'Time') ?? ''),
+        d: numero(textoDe(p, 'DistanceMeters')),
+        lat: numero(textoDe(p, 'LatitudeDegrees')),
+        lon: numero(textoDe(p, 'LongitudeDegrees')),
+        fc: numero(filho(p, 'HeartRateBpm')?.textContent),
+        pot: numero(textoDe(p, 'Watts')),
+        cad: numero(textoDe(p, 'Cadence')) ?? numero(textoDe(p, 'RunCadence')),
+        alt: numero(textoDe(p, 'AltitudeMeters')),
+      }))
+      .filter((p) => Number.isFinite(p.tempo))
+    if (!brutas.some((p) => p.d !== null)) {
+      let soma = 0
+      brutas.forEach((p, i) => {
+        const a = brutas[i - 1]
+        if (a && a.lat !== null && a.lon !== null && p.lat !== null && p.lon !== null) soma += distanciaHaversine(a.lat, a.lon, p.lat, p.lon)
+        p.d = p.lat !== null ? soma : null
+      })
+    }
+    const amostras: Amostra[] = brutas.map((p) => ({ t: (p.tempo - brutas[0].tempo) / 1000, d: p.d, fc: p.fc, pot: p.pot, cad: p.cad, alt: p.alt }))
 
     return {
       ...treinoBase(arquivo, modalidade, textoDe(atividade, 'Notes') ?? nomePadrao(modalidade, inicio), inicio, tempo || total || 1),
@@ -207,6 +264,7 @@ export function lerTcx(texto: string, arquivo = 'arquivo.tcx'): TreinoLido[] {
       potencia_media: inteiroEntre(media(potencias), 0, 3000),
       cadencia_media: arred(media(cadencias), 1),
       calorias: inteiroEntre(calorias || null, 0, 50000),
+      parciais: montarParciais(modalidade, amostras, parciaisVoltas),
     }
   })
 }
@@ -229,6 +287,113 @@ interface SessaoFit {
   normalizedPower?: number
   avgCadence?: number
   totalCalories?: number
+  poolLength?: number
+  firstLapIndex?: number
+  numLaps?: number
+}
+
+interface VoltaFit {
+  startTime?: Date
+  totalTimerTime?: number
+  totalElapsedTime?: number
+  totalDistance?: number
+  avgHeartRate?: number
+  maxHeartRate?: number
+  avgPower?: number
+  avgCadence?: number
+  totalAscent?: number
+  totalDescent?: number
+  totalCycles?: number
+  totalStrokes?: number
+  swimStroke?: string
+  numActiveLengths?: number
+}
+
+interface RegistroFit {
+  timestamp?: Date
+  distance?: number
+  heartRate?: number
+  power?: number
+  cadence?: number
+  altitude?: number
+  enhancedAltitude?: number
+}
+
+interface PiscinaFit {
+  startTime?: Date
+  totalTimerTime?: number
+  totalElapsedTime?: number
+  totalStrokes?: number
+  swimStroke?: string
+  lengthType?: string
+  avgSwimmingCadence?: number
+}
+
+const ms = (d: Date | undefined) => (d ? new Date(d).getTime() : NaN)
+
+/** Parciais de uma sessão do FIT: amostras (registros), voltas e piscinas dentro do horário dela. */
+function parciaisFit(
+  s: SessaoFit,
+  modalidade: Modalidade,
+  indice: number,
+  sessoes: SessaoFit[],
+  registros: RegistroFit[],
+  voltas: VoltaFit[],
+  piscinas: PiscinaFit[],
+): ParcialInput[] {
+  const inicio = ms(s.startTime)
+  const proxima = ms(sessoes[indice + 1]?.startTime)
+  const fim = Math.min(inicio + ((s.totalElapsedTime ?? 0) + 1) * 1000, Number.isFinite(proxima) ? proxima : Infinity)
+  const dentro = (t: number) => t >= inicio && t < fim
+  const corrida = modalidade === 'corrida'
+  const natacao = modalidade === 'natacao'
+
+  const amostras: Amostra[] = registros
+    .filter((r) => dentro(ms(r.timestamp)))
+    .map((r) => ({
+      t: (ms(r.timestamp) - inicio) / 1000,
+      d: r.distance ?? null,
+      fc: r.heartRate ?? null,
+      pot: r.power ?? null,
+      // corrida: o FIT registra passos de uma perna
+      cad: r.cadence ? (corrida ? r.cadence * 2 : r.cadence) : null,
+      alt: r.enhancedAltitude ?? r.altitude ?? null,
+    }))
+
+  const daSessao =
+    s.firstLapIndex !== undefined && s.numLaps ? voltas.slice(s.firstLapIndex, s.firstLapIndex + s.numLaps) : voltas.filter((v) => dentro(ms(v.startTime)))
+  const parciaisVoltas = daSessao.map((v, i) =>
+    limparParcial('volta', i + 1, {
+      duracao_seg: v.totalTimerTime ?? v.totalElapsedTime,
+      distancia_m: v.totalDistance,
+      fc_media: v.avgHeartRate,
+      fc_max: v.maxHeartRate,
+      potencia_media: v.avgPower,
+      cadencia_media: v.avgCadence ? (corrida ? v.avgCadence * 2 : v.avgCadence) : null,
+      elevacao_ganho_m: natacao ? null : v.totalAscent,
+      elevacao_perda_m: natacao ? null : v.totalDescent,
+      bracadas: natacao ? (v.totalStrokes ?? v.totalCycles) : null,
+      estilo: natacao ? traduzirEstilo(v.swimStroke) : null,
+      // natação: volta sem piscina nadada é o descanso entre as séries
+      descanso: natacao && (v.numActiveLengths === 0 || !v.totalDistance),
+    }),
+  )
+
+  const parciaisPiscina = natacao
+    ? piscinas
+        .filter((p) => p.lengthType !== 'idle' && dentro(ms(p.startTime)))
+        .map((p, i) =>
+          limparParcial('piscina', i + 1, {
+            duracao_seg: p.totalTimerTime ?? p.totalElapsedTime,
+            distancia_m: s.poolLength ?? null,
+            bracadas: p.totalStrokes,
+            estilo: traduzirEstilo(p.swimStroke),
+            cadencia_media: p.avgSwimmingCadence,
+          }),
+        )
+    : []
+
+  return montarParciais(modalidade, amostras, parciaisVoltas, parciaisPiscina)
 }
 
 export async function lerFit(bytes: Uint8Array, arquivo = 'arquivo.fit'): Promise<TreinoLido[]> {
@@ -238,11 +403,16 @@ export async function lerFit(bytes: Uint8Array, arquivo = 'arquivo.fit'): Promis
   const { messages, errors } = decoder.read({ convertDateTimesToDates: true, convertTypesToStrings: true })
   const sessoes = (messages.sessionMesgs ?? []) as unknown as SessaoFit[]
   if (!sessoes.length) throw new Error(errors?.[0]?.message ?? 'FIT sem resumo de atividade')
+  const registros = (messages.recordMesgs ?? []) as unknown as RegistroFit[]
+  const voltas = (messages.lapMesgs ?? []) as unknown as VoltaFit[]
+  const piscinas = (messages.lengthMesgs ?? []) as unknown as PiscinaFit[]
+  const ordenadas = [...sessoes].sort((a, b) => ms(a.startTime) - ms(b.startTime))
 
   const multiesporte = sessoes.length > 1
-  return sessoes
-    .filter((s) => s.sport !== 'transition' && s.startTime)
-    .map((s) => {
+  return ordenadas
+    .map((s, indice) => ({ s, indice }))
+    .filter(({ s }) => s.sport !== 'transition' && s.startTime)
+    .map(({ s, indice }) => {
       const modalidade = modalidadePorNome(s.sport === 'training' ? 'strength' : s.sport) ?? 'outro'
       const inicio = new Date(s.startTime!)
       const nome = multiesporte
@@ -261,6 +431,7 @@ export async function lerFit(bytes: Uint8Array, arquivo = 'arquivo.fit'): Promis
         // corrida: o FIT registra passos de uma perna; o padrão de mercado é por minuto (as duas)
         cadencia_media: s.avgCadence ? arred(modalidade === 'corrida' ? s.avgCadence * 2 : s.avgCadence, 1) : null,
         calorias: inteiroEntre(s.totalCalories, 0, 50000),
+        parciais: parciaisFit(s, modalidade, indice, ordenadas, registros, voltas, piscinas),
       }
     })
 }

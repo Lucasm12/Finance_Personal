@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { FileUpIcon, PlusIcon } from 'lucide-react'
 
 import { SeletorMes } from '@/components/SeletorMes'
-import { DialogImportarArquivos } from '@/components/triathlon/DialogImportarArquivos'
+import { DialogImportar } from '@/components/triathlon/importacao/DialogImportar'
 import { DialogTreino } from '@/components/triathlon/DialogTreino'
 import { LinhaTreino } from '@/components/triathlon/LinhaTreino'
 import { Button } from '@/components/ui/button'
@@ -60,7 +60,7 @@ export default function TreinosTriathlon() {
         <div className="flex w-full gap-2 sm:w-auto">
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setImportando(true)}>
             <FileUpIcon />
-            Importar
+            Importar treino
           </Button>
           <Button className="flex-1 sm:flex-none" onClick={() => setEditor({ aberto: true, treino: null })}>
             <PlusIcon />
@@ -111,9 +111,13 @@ export default function TreinosTriathlon() {
           <Skeleton className="h-40 rounded-xl" />
         </div>
       ) : semanas.length === 0 ? (
-        <Card className="items-center gap-2 px-6 py-12 text-center">
+        <Card className="items-center gap-3 px-6 py-12 text-center">
           <p className="font-medium">Nenhum treino neste mês</p>
-          <p className="text-muted-foreground text-sm">Registre um treino ou importe arquivos do relógio.</p>
+          <p className="text-muted-foreground text-sm">Registre um treino ou importe o que você já fez (arquivo do relógio ou AI Endurance), com as parciais.</p>
+          <Button variant="outline" onClick={() => setImportando(true)}>
+            <FileUpIcon />
+            Importar treino
+          </Button>
         </Card>
       ) : (
         <div className={cn('grid gap-4 transition-opacity', treinos.isPlaceholderData && 'opacity-60')}>
@@ -147,7 +151,7 @@ export default function TreinosTriathlon() {
         perfil={perfil.data}
         onFechar={() => setEditor({ aberto: false, treino: null })}
       />
-      <DialogImportarArquivos aberto={importando} onFechar={() => setImportando(false)} />
+      <DialogImportar aberto={importando} onFechar={() => setImportando(false)} />
     </div>
   )
 }

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 
 import { CardAgendaHoje } from '@/components/triathlon/agenda/CardAgendaHoje'
-import { DialogImportarArquivos } from '@/components/triathlon/DialogImportarArquivos'
+import { DialogImportar } from '@/components/triathlon/importacao/DialogImportar'
 import { DialogTreino } from '@/components/triathlon/DialogTreino'
 import { IconeModalidade, LinhaTreino } from '@/components/triathlon/LinhaTreino'
 import { Badge } from '@/components/ui/badge'
@@ -110,7 +110,7 @@ export default function PainelTriathlon() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setImportando(true)}>
             <FileUpIcon />
-            <span className="hidden sm:inline">Importar</span>
+            Importar treino
           </Button>
           <Button onClick={() => setEditor({ aberto: true, treino: null })}>
             <PlusIcon />
@@ -371,7 +371,7 @@ export default function PainelTriathlon() {
         perfil={limiares}
         onFechar={() => setEditor({ aberto: false, treino: null })}
       />
-      <DialogImportarArquivos aberto={importando} onFechar={() => setImportando(false)} />
+      <DialogImportar aberto={importando} onFechar={() => setImportando(false)} />
     </div>
   )
 }

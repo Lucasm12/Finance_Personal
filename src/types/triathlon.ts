@@ -1,5 +1,5 @@
 export type Modalidade = 'natacao' | 'ciclismo' | 'corrida' | 'forca' | 'outro'
-export type OrigemTreino = 'manual' | 'arquivo'
+export type OrigemTreino = 'manual' | 'arquivo' | 'ai_endurance'
 
 export interface Treino {
   id: string
@@ -27,6 +27,35 @@ export interface Treino {
 }
 
 export type TreinoInput = Omit<Treino, 'id' | 'user_id' | 'created_at'>
+
+// -----------------------------------------------------------------------------
+// Parciais (splits) dos treinos importados
+// -----------------------------------------------------------------------------
+
+/** km = a cada 1 km · intervalo = a cada 5 km (pedal) ou 100 m (natação) · volta = do relógio · piscina = cada piscina */
+export type TipoParcial = 'km' | 'volta' | 'intervalo' | 'piscina'
+
+export interface Parcial {
+  id: string
+  treino_id: string
+  tipo: TipoParcial
+  ordem: number
+  duracao_seg: number
+  distancia_m: number | null
+  fc_media: number | null
+  fc_max: number | null
+  potencia_media: number | null
+  cadencia_media: number | null
+  elevacao_ganho_m: number | null
+  elevacao_perda_m: number | null
+  bracadas: number | null
+  /** natação: crawl, costas, peito, borboleta, medley, educativo */
+  estilo: string | null
+  /** natação: série de descanso */
+  descanso: boolean
+}
+
+export type ParcialInput = Omit<Parcial, 'id' | 'treino_id'>
 
 export interface PerfilAtleta {
   user_id: string
@@ -164,6 +193,10 @@ export interface TreinoPlanejado {
   rotina_treino: string | null
   /** academia: cópia dos exercícios prescritos para este dia */
   exercicios: ExercicioPrescrito[] | null
+  /** corrida, natação e pedal: aquecimento, parte principal e desaquecimento, com a intensidade de cada bloco */
+  estrutura: EstruturaTreino | null
+  /** sugestão salva de onde veio */
+  sugestao_id: string | null
   created_at: string
 }
 
@@ -267,3 +300,65 @@ export interface SerieForca {
 }
 
 export type SerieForcaInput = Omit<SerieForca, 'id'>
+
+// -----------------------------------------------------------------------------
+// Sugestões de endurance: corrida, ciclismo e natação
+// -----------------------------------------------------------------------------
+
+export type ModalidadeEndurance = Extract<Modalidade, 'corrida' | 'ciclismo' | 'natacao'>
+export type ObjetivoEndurance = 'resistencia' | 'velocidade' | 'limiar' | 'recuperacao' | 'tecnica' | 'subidas'
+export type FaseBloco = 'aquecimento' | 'principal' | 'desaquecimento'
+/** de onde veio a sugestão */
+export type FonteSugestao = 'catalogo' | 'ai_endurance' | 'personalizada'
+
+/** Faixa de um alvo absoluto; null = sem limite daquele lado. */
+export type Faixa = [number | null, number | null]
+
+export interface PassoTreino {
+  /** esforço (tiro, contínuo) ou recuperação entre tiros */
+  tipo: 'esforco' | 'recuperacao'
+  duracao_seg: number | null
+  distancia_m: number | null
+  /** 1 recuperação · 2 resistência · 3 moderado · 4 limiar · 5 VO₂máx · 6 anaeróbio */
+  zona: number
+  /** alvo em fração do limiar (velocidade de limiar, FTP ou CSS); sem ele, vale a faixa da zona */
+  pct?: Faixa | null
+  /** alvo absoluto (AI Endurance): watts no pedal, m/s na corrida e na natação */
+  alvo?: { potencia?: Faixa; velocidade?: Faixa } | null
+  descricao?: string | null
+}
+
+export interface BlocoTreino {
+  fase: FaseBloco
+  /** 1 = contínuo; mais de 1 = repete os passos (ex.: 6× tiro + recuperação) */
+  repeticoes: number
+  passos: PassoTreino[]
+  descricao?: string | null
+}
+
+export interface EstruturaTreino {
+  modalidade: ModalidadeEndurance
+  objetivo: ObjetivoEndurance
+  nivel: NivelForca
+  blocos: BlocoTreino[]
+  fonte: FonteSugestao
+  /** id no catálogo do app ou na AI Endurance */
+  referencia?: string | null
+}
+
+export interface SugestaoSalva {
+  id: string
+  modalidade: ModalidadeEndurance
+  nome: string
+  objetivo: ObjetivoEndurance
+  nivel: NivelForca
+  descricao: string | null
+  fonte: FonteSugestao
+  referencia: string | null
+  duracao_seg: number | null
+  distancia_m: number | null
+  estrutura: EstruturaTreino
+  created_at: string
+}
+
+export type SugestaoSalvaInput = Omit<SugestaoSalva, 'id' | 'created_at'>

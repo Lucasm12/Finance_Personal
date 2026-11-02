@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePerfilAtleta, usePesagens, useSalvarPerfil } from '@/hooks/useTriathlon'
+import { ZONAS_FC, ZONAS_POTENCIA } from '@/lib/sugestoes/zonas'
 import { formatarDecimal, formatarPace, lerDuracao, taxaBasal } from '@/lib/triathlon'
 import type { PerfilAtleta, PerfilAtletaInput } from '@/types/triathlon'
 
@@ -47,23 +48,6 @@ function Campo({ id, rotulo, dica, children }: { id: string; rotulo: string; dic
     </div>
   )
 }
-
-// Zonas de FC por % da FC de limiar (Joe Friel) e de potência por % do FTP (Andrew Coggan)
-const ZONAS_FC = [
-  ['Z1 Recuperação', 0, 0.85],
-  ['Z2 Aeróbico', 0.85, 0.9],
-  ['Z3 Tempo', 0.9, 0.95],
-  ['Z4 Limiar', 0.95, 1.0],
-  ['Z5 VO₂máx', 1.0, 1.1],
-] as const
-const ZONAS_POTENCIA = [
-  ['Z1 Recuperação', 0, 0.55],
-  ['Z2 Resistência', 0.56, 0.75],
-  ['Z3 Tempo', 0.76, 0.9],
-  ['Z4 Limiar', 0.91, 1.05],
-  ['Z5 VO₂máx', 1.06, 1.2],
-  ['Z6 Anaeróbico', 1.21, 1.5],
-] as const
 
 function FormPerfil({ perfil, pesoAtual }: { perfil: PerfilAtleta | null | undefined; pesoAtual: number | null }) {
   const salvar = useSalvarPerfil()

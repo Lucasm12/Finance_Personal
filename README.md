@@ -30,6 +30,7 @@ com `LayoutModulo` (veja [LayoutTriathlon.tsx](src/components/layout/LayoutTriat
    8. [supabase/migrations/20261101140000_musculacao.sql](supabase/migrations/20261101140000_musculacao.sql) — Musculação: rotinas de força, exercícios de cada treino agendado e séries registradas. Pode rodar de novo sem problema
    9. [supabase/migrations/20261101150000_seguranca.sql](supabase/migrations/20261101150000_seguranca.sql) — **segurança**: cadastro só para e-mails autorizados, proteção do lembrete, limites de tamanho, auditoria e exclusão de conta. Veja [SEGURANCA.md](SEGURANCA.md)
    10. [supabase/migrations/20261102120000_pessoal.sql](supabase/migrations/20261102120000_pessoal.sql) — módulo **Pessoal**: livros da Bíblia e planos de leitura, objetivos, metas, hábitos, tarefas, diário, revisões e os cálculos (sequências, progresso, atrasos). Pode rodar de novo sem problema. **Depois dela, importe o texto da Bíblia uma vez:** veja [Bíblia: importar o texto](#bíblia-importar-o-texto-uma-vez)
+   11. [supabase/migrations/20261102130000_endurance.sql](supabase/migrations/20261102130000_endurance.sql) — **parciais** dos treinos importados, **sugestões salvas** de corrida/pedal/natação, estrutura do treino planejado, importação sem duplicidade (`importar_treinos`) e vínculo com a **AI Endurance**. Pode rodar de novo sem problema
 
    > Se usar a Supabase CLI: `supabase link --project-ref SEU-REF` e depois `supabase db push`.
 
@@ -64,7 +65,8 @@ git push -u origin main
 
 Na Vercel: **Add New → Project →** importe o repositório. O framework (Vite) é detectado
 sozinho pelo [vercel.json](vercel.json). Em **Environment Variables** adicione
-`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` e clique em **Deploy**.
+`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` e clique em **Deploy**. (Opcional: `AI_ENDURANCE_PARTNER_ID` e
+`AI_ENDURANCE_API_KEY` para a [integração com a AI Endurance](#integração-ai-endurance-opcional).)
 
 **Opção B — pela linha de comando:**
 
@@ -171,8 +173,8 @@ mostra "5/33" no painel, para de lançar depois da última parcela e marca a con
 | Tela | O que faz |
 |---|---|
 | **Painel** | Prova principal com contagem regressiva e fase sugerida (base, construção, específico, polimento), volume da semana por modalidade, forma do dia, últimos treinos e peso (com IMC e W/kg). |
-| **Treinos** | Treinos do mês agrupados por semana, filtro por modalidade, registro manual (com esforço percebido 1–10) e importação de arquivos. |
-| **Agenda** | Calendário mensal e semanal dos treinos planejados (corrida, natação, pedal e academia), situação de cada treino (concluído, perdido, pendente), metas por semana com barras de progresso, treinos feitos fora do plano, evolução das últimas 12 semanas e resumo por mês. Aba **Musculação**: sugestão de rotina, registro de cargas e progressão. Veja [Agenda](#agenda-metas-semanais-e-treinos-planejados) e [Musculação](#musculação-sugestão-de-rotina-e-progressão-de-carga). |
+| **Treinos** | Treinos do mês agrupados por semana, filtro por modalidade, registro manual (com esforço percebido 1–10) e **Importar treino** (arquivo do relógio ou AI Endurance). Tocar num treino abre os detalhes com as **parciais** e o **planejado × realizado**. Veja [Importar treinos e parciais](#importar-treinos-e-parciais). |
+| **Agenda** | Calendário mensal e semanal dos treinos planejados (corrida, natação, pedal e academia), situação de cada treino (concluído, perdido, pendente), metas por semana com barras de progresso, treinos feitos fora do plano, evolução das últimas 12 semanas e resumo por mês. Aba **Musculação**: sugestão de rotina, registro de cargas e progressão. Aba **Endurance**: sugestões de corrida, pedal e natação. Veja [Agenda](#agenda-metas-semanais-e-treinos-planejados), [Musculação](#musculação-sugestão-de-rotina-e-progressão-de-carga) e [Endurance](#endurance-sugestões-de-corrida-pedal-e-natação). |
 | **Evolução** | Volume semanal por modalidade, condicionamento/fadiga/forma, pace da corrida, velocidade no ciclismo, ritmo na natação, peso × pace (com correlação) e recordes. |
 | **Corpo** | Peso e altura → IMC com a tabela da OMS e a faixa de peso normal para a sua altura; % de gordura (balança, método da Marinha pelas medidas ou estimada pelo IMC), massa magra/gorda e FFMI; cintura, cintura ÷ altura, cintura ÷ quadril e gordura visceral; dados da bioimpedância; peso de referência (fórmulas clássicas e peso para cada % de gordura); taxa basal por 4 fórmulas, gasto dos treinos e necessidades de proteína, carboidrato, gordura e água; tendência em kg/semana; **meta semanal** até o peso objetivo, com metas semana a semana e previsão de chegada; gráficos e histórico. Veja [Corpo](#corpo-peso-imc-e-composição). |
 | **Nutrição** | Alimentação do dia (calorias e macros × metas, gasto dos treinos, balanço estimado, alimentos salvos, repetir dia anterior). |
@@ -270,13 +272,113 @@ equipamento e o passo a passo original. Os dados vêm da versão gratuita da [Ex
   [AscendAPI](https://ascendapi.com) — o crédito aparece em toda demonstração. Para uso comercial é preciso o plano pago
   (RapidAPI).
 
-### Registrar treinos
+### Importar treinos e parciais
 
-Não há conexão automática com Strava ou TrainingPeaks: os treinos entram **à mão** (Treinos → **Novo treino**) ou
-**por arquivo** (Painel ou Treinos → **Importar**): `.fit`, `.tcx`, `.gpx` do relógio/ciclocomputador, o `.csv` de
-resumo de treinos do TrainingPeaks e `.zip`/`.gz` com vários arquivos (por exemplo, a exportação em lote da sua
-conta no Strava ou no TrainingPeaks). Arquivos multiesporte viram um treino por modalidade; treinos que já existem
-são marcados e ficam de fora.
+Não há conexão com Strava ou TrainingPeaks. Os treinos entram **à mão** (Treinos → **Novo treino**) ou por
+**Importar treino** (no Painel, em Treinos e no aviso de mês vazio) — sempre treinos **já realizados**:
+
+- **Arquivo do relógio**: `.fit`, `.tcx`, `.gpx` (Garmin, Wahoo, Coros, Polar…), o `.csv` de resumo do TrainingPeaks e
+  `.zip`/`.gz` com vários arquivos (ex.: exportação em lote do Strava). Arquivo multiesporte vira um treino por modalidade.
+- **AI Endurance**: busca as atividades da sua conta (corrida, pedal e natação), se a [integração](#integração-ai-endurance-opcional)
+  estiver configurada.
+
+A prévia mostra data, duração, distância, FC, potência e quantas parciais vieram. **Duplicidade**: é o mesmo treino
+quando a modalidade é igual e o início difere em até 3 minutos — venha de arquivo, da AI Endurance ou de registro à
+mão. Ele aparece como **já existe** e fica de fora; marque a caixa para **completar** o treino existente com as medidas
+e as parciais do arquivo (nome, esforço e anotações continuam os seus, e o vínculo com a Agenda se mantém). A regra
+vale também no banco (`importar_treinos`): mesmo que a tela falhe, não entra registro duplicado.
+
+**Parciais** (gravadas em `treino_parciais`, para consultar e comparar depois):
+
+| Modalidade | Parciais | Colunas |
+|---|---|---|
+| Corrida | por km (calculado das amostras de GPS/distância, com interpolação no ponto exato de cada km) e as voltas do relógio | tempo, pace, FC média/máx, subida/descida, cadência (passos/min) |
+| Ciclismo | voltas do relógio e a cada 5 km | tempo, velocidade, potência, cadência, FC, subida/descida |
+| Natação | séries (voltas, com o descanso marcado) e cada piscina (.fit de piscina); águas abertas: a cada 100 m | distância, tempo, pace/100 m, braçadas, estilo |
+
+Na tela de detalhes do treino, a aba **Parciais** mostra a tabela, o total e os destaques: **mais rápida**, **mais
+lenta** (sem o último trecho incompleto e sem os descansos) e **média geral** (tempo total ÷ distância total; FC e
+potência ponderadas pelo tempo). Intervalos sem amostras por mais de 30 s contam como pausa. Treinos à mão e o `.csv`
+do TrainingPeaks não têm parciais — a tela explica e sugere importar o arquivo e completar.
+
+### Endurance: sugestões de corrida, pedal e natação
+
+Na Agenda, aba **Endurance**, no mesmo formato da Musculação:
+
+1. **Configure**: modalidade, objetivo (automático, resistência, limiar, velocidade, subidas, técnica, recuperação), nível
+   e tempo disponível (30 min a 2 h).
+2. **Gere as sugestões**: até 4 treinos do catálogo ([src/lib/sugestoes/catalogo.ts](src/lib/sugestoes/catalogo.ts)), cada um
+   com **aquecimento, parte principal e desaquecimento** e a intensidade de cada passo em **zona** (Z1–Z6), **pace**
+   (pelo pace de limiar), **potência** (pelo FTP), **ritmo/100 m** (pelo CSS), **FC** (pela FC de limiar) e **PSE** (0–10).
+   Dá para ajustar as repetições da parte principal (− / +).
+3. **Salve** (vai para **Meus treinos salvos**) e/ou **coloque na agenda** (com data). O formulário de planejar treino
+   da Agenda também oferece os salvos e o catálogo.
+4. Depois de treinar, **importe** o treino e, ao concluir o planejado, **vincule** a atividade. A aba
+   **Planejado × realizado** (nos detalhes do treino e no treino planejado) compara totais (duração, distância, carga),
+   **passo a passo** (quando o relógio gravou uma volta por passo) e o **tempo em cada zona** (pelas parciais), com uma
+   nota de aderência de 0 a 100%.
+
+| Modalidade | Treinos do catálogo |
+|---|---|
+| Corrida | rodagem leve, regenerativo, intervalado (800 m), tempo run, longão, fartlek, tiros em subida, progressivo |
+| Ciclismo | endurance Z2, intervalos de limiar, sweet spot, VO₂máx, subidas, recuperação ativa, cadência e técnica |
+| Natação | técnica e educativos, série aeróbica, limiar (CSS), tiros de velocidade, nado contínuo, pirâmide, recuperação |
+
+**Como a sugestão escolhe** ([src/lib/sugestoes/recomendacao.ts](src/lib/sugestoes/recomendacao.ts)): no modo automático,
+forma abaixo de −25 → recuperação primeiro; treino intenso na modalidade há menos de 48 h → só treinos leves; uma
+semana ou mais sem treino longo e 75 min+ disponíveis → longo primeiro; senão, qualidade (limiar, velocidade). Treinos
+que não cabem no tempo perdem repetições (até 2) e depois encurtam a parte contínua (até a metade); se ainda não
+couberem, ficam de fora com o motivo. Sem limiar no Perfil do atleta, os alvos ficam por zona, FC e PSE (e o app avisa).
+
+Se a integração com a AI Endurance estiver ativa, o cartão **Treinos do seu plano na AI Endurance** traz os treinos
+futuros do plano, com os alvos dela (watts ou pace), para salvar ou agendar da mesma forma.
+
+### Integração AI Endurance (opcional)
+
+Segue a [Partner API da AI Endurance](https://github.com/ai-endurance/Partner-API-documentation) (documentação v2.4):
+autenticação pelos cabeçalhos `PARTNER-ID` e `Authorization: Bearer <chave>`, base `https://aiendurance.xyz/api/`.
+É uma API **para parceiros (empresas)**: o acesso é liberado pela AI Endurance, não é um login de atleta.
+
+**O que o app usa:**
+
+| Função | Endpoint |
+|---|---|
+| Atividades realizadas | `running_activity_detail_partner/`, `cycling_activity_detail_partner/`, `swimming_activity_detail_partner/` (`?user=`) |
+| Treinos sugeridos | `training_plan_partner/?user=` → `future_workout_static_partner/?plan=`; zonas e `.zwo` em `usercore_partner/?user=` |
+
+A chave fica numa **função serverless da Vercel** ([api/ai-endurance.ts](api/ai-endurance.ts)); o navegador só fala com
+`/api/ai-endurance`, mandando o token da sessão. A função confere o token no Supabase e pega o atleta **no banco**
+(nunca da URL) — com uma chave de parceiro dá para ler qualquer atleta do parceiro, então o vínculo é feito só pelo
+dono do projeto.
+
+**Passo a passo:**
+
+1. Crie uma conta em [aiendurance.com](https://aiendurance.com) e peça acesso à Partner API por e-mail a
+   `markus@aiendurance.com` (informe o e-mail da conta, o nome do projeto e o uso). Com o acesso liberado, entre em
+   [aiendurance.xyz/admin](https://aiendurance.xyz/admin/): lá ficam o **Partner ID**, a **API key** e o ReDoc com os
+   formatos completos.
+2. Descubra o **id do atleta** na AI Endurance (no admin ou pelo `usercore_partner/` — é o `id` do atleta criado pelo
+   parceiro, com os treinos sincronizados nele).
+3. Rode a migração 11 e, no **SQL Editor** do Supabase, vincule o atleta à sua conta:
+   ```sql
+   insert into privado.ai_endurance_atletas (user_id, aie_user_id)
+     select id, 'ID-DO-ATLETA' from auth.users where email = 'voce@exemplo.com'
+   on conflict (user_id) do update set aie_user_id = excluded.aie_user_id;
+   ```
+4. Na Vercel → **Settings → Environment Variables**, cadastre `AI_ENDURANCE_PARTNER_ID` e `AI_ENDURANCE_API_KEY`
+   (**sem** prefixo `VITE_`, senão iriam para o navegador) e faça um novo deploy. A função usa também
+   `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, que já estão lá.
+5. No computador: coloque as mesmas duas variáveis no `.env.local` — o `npm run dev` já serve a função em
+   `/api/ai-endurance` (ou use `npx vercel dev`).
+6. Teste: Treinos → **Importar treino** → aba **AI Endurance**. Sem configuração, a aba explica o que falta.
+
+**Limites e o que ainda não está coberto:** a documentação pública não traz o formato da resposta das atividades (fica
+no ReDoc, com login de parceiro), então a leitura aceita os nomes de campo mais comuns e, se algo não for reconhecido, o
+aviso mostra os campos recebidos para ajustar [src/lib/integracao-ai-endurance/atividades.ts](src/lib/integracao-ai-endurance/atividades.ts).
+Voltas e amostras só aparecem se a AI Endurance enviar; senão o treino entra **sem parciais** (importe o .fit para
+completar). Os treinos sugeridos seguem o formato `steps` documentado (alvos em W ou m/s) e, como alternativa, o
+`.zwo` do `zwift_zip`. A AI Endurance não documenta importação de GPX/TCX (só FIT) nem sandbox; os webhooks
+(`fit_import_complete` etc.) não foram usados — a busca é sob demanda. Limite da API: 1.000 requisições/hora por atleta.
 
 ### Corpo: peso, IMC e composição
 
@@ -397,10 +499,14 @@ Enquanto o texto não for importado, o app mostra um aviso na tela da Bíblia (o
 | `movimentos_caixinha` | cada valor guardado (`aporte`) ou retirado (`retirada`) |
 | `v_saldo_caixinhas` | saldo, total guardado e retirado de cada caixinha |
 | `lembretes_email` | para qual e-mail enviar o lembrete de cada usuário (ativo/inativo, último envio) |
-| `treinos` | atividades (manual ou arquivo); `unique (user_id, origem, origem_id)` evita importar o mesmo arquivo duas vezes |
+| `treinos` | atividades (manual, arquivo ou AI Endurance); `unique (user_id, origem, origem_id)` evita importar o mesmo arquivo duas vezes |
+| `treino_parciais` | parciais de cada treino: `tipo` (km, volta, intervalo, piscina), `ordem`, tempo, distância, FC média/máx, potência, cadência, subida/descida, braçadas, estilo, `descanso`; `unique (treino_id, tipo, ordem)`; apagar o treino apaga as parciais |
+| `importar_treinos(jsonb)` | grava treinos importados com as parciais em uma transação, sem duplicar (mesma chave ou mesma modalidade a até 3 min); `completar` atualiza o existente |
+| `sugestoes_salvas` | treinos de corrida/pedal/natação guardados: objetivo, nível, `fonte` (catálogo, AI Endurance, personalizada), `referencia`, duração, distância e `estrutura` (jsonb); `unique (user_id, fonte, referencia, nivel)` |
+| `privado.ai_endurance_atletas`, `ai_endurance_atleta()` | qual atleta da AI Endurance é de qual usuário (só o dono do projeto grava; a função devolve só o do próprio usuário) |
 | `perfil_atleta` | limiares (FTP, FC, pace, CSS) e metas de peso/nutrição |
 | `metas_semanais` | meta por semana (segunda-feira) e modalidade: `distancia_m` ou, na academia, `sessoes`; `unique (user_id, semana, modalidade)` |
-| `treinos_planejados` | treino de um dia: planejado (distância/duração), `status` pendente/concluído/perdido, realizado (só se concluído) e `treino_id` opcional apontando para a atividade em `treinos`; na academia, `rotina_id`, `rotina_treino` e a cópia dos `exercicios` do dia |
+| `treinos_planejados` | treino de um dia: planejado (distância/duração), `status` pendente/concluído/perdido, realizado (só se concluído) e `treino_id` opcional apontando para a atividade em `treinos`; na academia, `rotina_id`, `rotina_treino` e a cópia dos `exercicios` do dia; em corrida/pedal/natação, a `estrutura` (blocos, repetições e zona/alvo de cada passo) e a `sugestao_id` de onde veio |
 | `rotinas_forca` | rotina de musculação: configuração, divisão, dias e `treinos` (jsonb com os exercícios); só uma `ativa` por usuário, as antigas ficam guardadas |
 | `series_forca` | cada série registrada (carga, repetições, RPE, técnica) de um treino planejado de academia |
 | `pesagens` | uma medição por dia: peso (obrigatório), dados da bioimpedância e circunferências |
@@ -435,14 +541,18 @@ src/
   pages/triathlon/   Painel, Treinos, Agenda, Evolucao, Corpo, Nutricao, Provas, PerfilAtleta
   pages/pessoal/     MeuDia, Biblia, Leitura, Metas, Habitos, Tarefas, Diario
   components/     layout/ (LayoutModulo, TrocarModulo, LayoutFinanceiro, LayoutTriathlon),
-                  login/ (fundo animado), dashboard/, economia/, contas/, triathlon/ (agenda/, corpo/, forca/),
+                  login/ (fundo animado), dashboard/, economia/, contas/,
+                  triathlon/ (agenda/, corpo/, forca/, importacao/, parciais/, sugestoes/),
                   pessoal/ (biblia/, metas/, habitos/, tarefas/), ui/ (shadcn)
-  hooks/          useDados, useEconomia, useTriathlon, usePessoal, useBiblia (React Query), useAuth, useTema, useCompetencia
+  hooks/          useDados, useEconomia, useTriathlon, useParciais, useSugestoes, useAiEndurance, usePessoal, useBiblia (React Query), useAuth, useTema, useCompetencia
   lib/            format, exportar (Excel/CSV), triathlon (carga, forma, ritmos), corpo (IMC, gordura, faixas), agenda (semanas, metas, situação), forca/ (catálogo de exercícios, recomendação, progressão),
-                  importacaoArquivos (FIT/TCX/GPX/CSV), pessoal (datas em São Paulo, planos, situação da leitura)
+                  importacao/ (arquivos FIT/TCX/GPX/CSV, duplicidade), parciais/ (por km, volta, piscina; destaques),
+                  sugestoes/ (zonas, catálogo, estrutura, recomendação, planejado × realizado),
+                  integracao-ai-endurance/ (cliente, atividades, treinos "steps" e .zwo), pessoal (datas em São Paulo, planos, situação da leitura)
+api/              ai-endurance.ts — função serverless da Vercel (a chave da AI Endurance só existe aqui)
 scripts/          seed-biblia.mjs (importa a Bíblia) e biblia/sword.mjs (leitor do módulo da CrossWire)
 supabase/migrations/   SQL do banco
-tests/            banco/ (todas as migrações num Postgres de teste) e frontend/
+tests/            banco/ (todas as migrações num Postgres de teste), frontend/ e api/ (função da Vercel com fetch simulado)
 ```
 
 Para adicionar outros componentes do shadcn/ui: `npx shadcn@latest add <componente>`.

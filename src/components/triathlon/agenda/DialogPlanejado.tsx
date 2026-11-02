@@ -4,20 +4,25 @@ import { toast } from 'sonner'
 
 import { EditorExercicios, ListaExercicios } from '@/components/triathlon/forca/Exercicios'
 import { SeletorModalidade } from '@/components/triathlon/SeletorModalidade'
+import { ComparacaoDoPlanejado } from '@/components/triathlon/sugestoes/ComparacaoPlano'
+import { VisaoEstrutura } from '@/components/triathlon/sugestoes/VisaoEstrutura'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
-import { useExcluirTreinoPlanejado, useRotinaAtiva, useSalvarTreinoPlanejado, useSeriesForca } from '@/hooks/useTriathlon'
+import { useSugestoesSalvas } from '@/hooks/useSugestoes'
+import { useExcluirTreinoPlanejado, usePerfilAtleta, useRotinaAtiva, useSalvarTreinoPlanejado, useSeriesForca } from '@/hooks/useTriathlon'
 import { emMetros, MODALIDADES_AGENDA, naUnidade, ORDEM_STATUS, STATUS, UNIDADE } from '@/lib/agenda'
-import { NOMES_GRUPO } from '@/lib/forca/exercicios'
+import { NOMES_GRUPO, NOMES_NIVEL } from '@/lib/forca/exercicios'
 import { gruposRecentes } from '@/lib/forca/progressao'
 import { duracaoEstimada } from '@/lib/forca/recomendacao'
+import { CATALOGO, MODELO_POR_ID, OBJETIVOS_ENDURANCE } from '@/lib/sugestoes/catalogo'
+import { resumoEstrutura, totaisEstrutura } from '@/lib/sugestoes/estrutura'
 import { dataLocal, duracaoRelogio, lerDuracao, MODALIDADES, somarDias } from '@/lib/triathlon'
 import { cn } from '@/lib/utils'
-import type { ExercicioPrescrito, ModalidadeAgenda, StatusTreino, TreinoPlanejado, TreinoPlanejadoInput } from '@/types/triathlon'
+import type { EstruturaTreino, ExercicioPrescrito, ModalidadeAgenda, NivelForca, StatusTreino, TreinoPlanejado, TreinoPlanejadoInput } from '@/types/triathlon'
 
 const EXEMPLOS: Record<ModalidadeAgenda, string> = {
   corrida: 'Ex.: Rodagem leve, Intervalado 6×800 m',
@@ -68,6 +73,46 @@ function FormPlanejado({ treino, dataInicial, onFechar }: FormProps) {
   const [editandoExercicios, setEditandoExercicios] = useState(false)
   const recentes = useSeriesForca(somarDias(data || dataLocal(new Date()), -2), somarDias(data || dataLocal(new Date()), -1))
   const conflitos = academia && exercicios ? gruposRecentes(recentes.data ?? [], data).filter((g) => exercicios.some((x) => x.grupo === g)) : []
+
+  // corrida, natação e pedal: estrutura vinda de um treino salvo ou do catálogo de sugestões
+  const perfil = usePerfilAtleta()
+  const salvas = useSugestoesSalvas()
+  const [estrutura, setEstrutura] = useState<EstruturaTreino | null>(treino?.estrutura ?? null)
+  const [sugestaoId, setSugestaoId] = useState<string | null>(treino?.sugestao_id ?? null)
+  const [nivelCatalogo, setNivelCatalogo] = useState<NivelForca>(treino?.estrutura?.nivel ?? 'intermediario')
+  const [verComparacao, setVerComparacao] = useState(false)
+  const estruturaValida = !academia && estrutura?.modalidade === modalidade ? estrutura : null
+  const salvasDaModalidade = (salvas.data ?? []).filter((s) => s.modalidade === modalidade)
+  const catalogo = CATALOGO.filter((x) => x.modalidade === modalidade && x.niveis.includes(nivelCatalogo))
+
+  function usarEstrutura(e: EstruturaTreino, nomeTreino: string, id: string | null, duracaoSeg?: number | null, distanciaM?: number | null) {
+    const t = totaisEstrutura(e, perfil.data)
+    setEstrutura(e)
+    setSugestaoId(id)
+    setNome(nomeTreino)
+    setDescricao(resumoEstrutura(e))
+    const seg = duracaoSeg ?? t.duracao_seg
+    const metros = distanciaM ?? t.distancia_m
+    setDuracao(seg ? duracaoRelogio(seg) : '')
+    setDistancia(metros && modalidade !== 'forca' ? texto(naUnidade(modalidade, metros)) : '')
+  }
+
+  function escolherSugestao(valor: string) {
+    if (!valor) return
+    const [tipo, id] = [valor.slice(0, valor.indexOf(':')), valor.slice(valor.indexOf(':') + 1)]
+    if (tipo === 'salva') {
+      const s = salvasDaModalidade.find((x) => x.id === id)
+      if (s) usarEstrutura(s.estrutura, s.nome, s.id, s.duracao_seg, s.distancia_m)
+      return
+    }
+    const modelo = MODELO_POR_ID.get(id)
+    if (!modelo || modelo.modalidade !== modalidade) return
+    usarEstrutura(
+      { modalidade: modelo.modalidade, objetivo: modelo.objetivo, nivel: nivelCatalogo, blocos: modelo.montar(nivelCatalogo), fonte: 'catalogo', referencia: modelo.id },
+      modelo.nome,
+      null,
+    )
+  }
 
   function escolherTreinoRotina(letra: string) {
     setRotinaTreino(letra)
@@ -121,6 +166,8 @@ function FormPlanejado({ treino, dataInicial, onFechar }: FormProps) {
       rotina_id: academia && rotinaTreino ? (treino?.rotina_treino === rotinaTreino ? treino.rotina_id : (rotina.data?.id ?? null)) : null,
       rotina_treino: academia && rotinaTreino ? rotinaTreino : null,
       exercicios: academia && exercicios?.length ? exercicios : null,
+      estrutura: estruturaValida,
+      sugestao_id: estruturaValida ? sugestaoId : null,
     }
     try {
       await salvar.mutateAsync({ id: treino?.id, dados })
@@ -209,6 +256,60 @@ function FormPlanejado({ treino, dataInicial, onFechar }: FormProps) {
               )}
               <p className="text-muted-foreground text-[11px]">Mudar aqui vale só para este dia; a rotina continua igual.</p>
             </>
+          )}
+        </fieldset>
+      )}
+
+      {!academia && (
+        <fieldset className="grid gap-2 rounded-lg border p-3">
+          <legend className="px-1 text-xs font-medium">Estrutura do treino (opcional)</legend>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <NativeSelect value="" onChange={(e) => escolherSugestao(e.target.value)} aria-label="Usar um treino salvo ou do catálogo">
+              <option value="">{estruturaValida ? 'Trocar por outro treino…' : 'Usar um treino salvo ou sugerido…'}</option>
+              {salvasDaModalidade.length > 0 && (
+                <optgroup label="Meus treinos salvos">
+                  {salvasDaModalidade.map((s) => (
+                    <option key={s.id} value={`salva:${s.id}`}>
+                      {s.nome} ({NOMES_NIVEL[s.nivel]})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label={`Catálogo (${NOMES_NIVEL[nivelCatalogo].toLowerCase()})`}>
+                {catalogo.map((x) => (
+                  <option key={x.id} value={`cat:${x.id}`}>
+                    {x.nome} — {OBJETIVOS_ENDURANCE[x.objetivo]}
+                  </option>
+                ))}
+              </optgroup>
+            </NativeSelect>
+            <NativeSelect className="w-36" value={nivelCatalogo} onChange={(e) => setNivelCatalogo(e.target.value as NivelForca)} aria-label="Nível do catálogo">
+              {(Object.entries(NOMES_NIVEL) as [NivelForca, string][]).map(([v, rotulo]) => (
+                <option key={v} value={v}>
+                  {rotulo}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+          {estruturaValida ? (
+            <>
+              <VisaoEstrutura estrutura={estruturaValida} perfil={perfil.data} compacta />
+              <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setEstrutura(null)}>
+                Remover estrutura
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground text-[11px]">
+              Com estrutura (aquecimento, séries e desaquecimento), o treino importado depois pode ser comparado com o planejado. Mais opções na aba Endurance.
+            </p>
+          )}
+          {treino?.status === 'concluido' && treino.treino_id && treino.estrutura && (
+            <div className="grid gap-2 border-t pt-2">
+              <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setVerComparacao(!verComparacao)}>
+                {verComparacao ? 'Esconder planejado × realizado' : 'Ver planejado × realizado'}
+              </Button>
+              {verComparacao && <ComparacaoDoPlanejado planejado={treino} />}
+            </div>
           )}
         </fieldset>
       )}

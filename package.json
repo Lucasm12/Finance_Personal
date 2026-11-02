@@ -12,7 +12,7 @@
     "typecheck": "tsc -b",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:seguranca": "vitest run tests/banco tests/frontend",
+    "test:seguranca": "vitest run tests/banco tests/frontend tests/api",
     "audit": "npm audit",
     "seed:biblia": "node --env-file-if-exists=.env.local scripts/seed-biblia.mjs"
   },

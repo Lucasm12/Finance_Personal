@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query'
 
 import { avisarErro, useInvalidar, verificar } from '@/hooks/useDados'
-import { chaveImportacao, type TreinoLido } from '@/lib/importacaoArquivos'
+import type { TreinoLido } from '@/lib/importacao/arquivos'
 import { supabase } from '@/lib/supabase'
 import { dataLocal, diasEntre, somarDias } from '@/lib/triathlon'
 import type {
@@ -41,6 +41,11 @@ export const chavesTri = {
   forca: ['tri', 'forca'] as const,
   rotina: ['tri', 'forca', 'rotina'] as const,
   series: (inicio: string, fim: string) => ['tri', 'forca', 'series', inicio, fim] as const,
+  // as parciais ficam sob 'treinos' para serem atualizadas junto com eles
+  parciais: (treinoId: string) => ['tri', 'treinos', 'parciais', treinoId] as const,
+  planoDoTreino: (treinoId: string) => ['tri', 'agenda', 'do-treino', treinoId] as const,
+  sugestoes: ['tri', 'sugestoes'] as const,
+  aie: ['tri', 'ai-endurance'] as const,
 }
 
 const num = (v: unknown) => (v === null || v === undefined ? null : Number(v))
@@ -124,27 +129,57 @@ export function useExcluirTreino() {
   })
 }
 
-/** Grava treinos lidos de arquivos. A chave evita duplicar se o mesmo arquivo for importado de novo. */
+export interface TreinoParaImportar extends TreinoLido {
+  origem: 'arquivo' | 'ai_endurance'
+  origem_id: string
+  /** já existe no app: completa o existente com as medidas e as parciais em vez de ignorar */
+  completar?: boolean
+}
+
+export interface ResultadoImportacao {
+  novos: number
+  completados: number
+  parciais: number
+  /** já existiam e ficaram de fora */
+  ignorados: { origem_id: string; treino_id: string; nome: string }[]
+}
+
+/**
+ * Grava treinos importados (arquivo ou AI Endurance) com as parciais, pela função do banco
+ * public.importar_treinos — é ela que garante que o mesmo treino não entra duas vezes.
+ * Vai em lotes de até 20 treinos / 3.000 parciais por chamada.
+ */
 export function useImportarTreinos() {
   const invalidar = useInvalidar()
   return useMutation({
-    mutationFn: async (treinos: TreinoLido[]) => {
-      const linhas = treinos.map(({ arquivo, ...t }) => ({
-        ...t,
-        origem: 'arquivo' as const,
-        origem_id: chaveImportacao(t),
-        dados: { arquivo },
-      }))
-      for (let i = 0; i < linhas.length; i += 200) {
-        verificar(
-          await supabase
-            .from('treinos')
-            .upsert(linhas.slice(i, i + 200), { onConflict: 'user_id,origem,origem_id' }),
-        )
+    mutationFn: async (treinos: TreinoParaImportar[]) => {
+      const total: ResultadoImportacao = { novos: 0, completados: 0, parciais: 0, ignorados: [] }
+      const lotes: TreinoParaImportar[][] = [[]]
+      let parciaisNoLote = 0
+      for (const t of treinos) {
+        const atual = lotes.at(-1)!
+        if (atual.length && (atual.length >= 20 || parciaisNoLote + t.parciais.length > 3000)) {
+          lotes.push([])
+          parciaisNoLote = 0
+        }
+        lotes.at(-1)!.push(t)
+        parciaisNoLote += t.parciais.length
       }
-      return linhas.length
+      for (const lote of lotes.filter((l) => l.length)) {
+        const itens = lote.map(({ arquivo, parciais, completar, ...t }) => ({
+          treino: { ...t, dados: { arquivo } },
+          parciais,
+          completar: !!completar,
+        }))
+        const r = verificar(await supabase.rpc('importar_treinos', { p_itens: itens })) as ResultadoImportacao
+        total.novos += r.novos
+        total.completados += r.completados
+        total.parciais += r.parciais
+        total.ignorados.push(...r.ignorados)
+      }
+      return total
     },
-    onSuccess: () => invalidar(chavesTri.treinos),
+    onSuccess: () => invalidar(chavesTri.treinos, chavesTri.agenda),
     onError: avisarErro,
   })
 }
@@ -549,6 +584,8 @@ export function useCopiarSemanaPlanejada() {
             distancia_planejada_m: t.distancia_planejada_m,
             duracao_planejada_seg: t.duracao_planejada_seg,
             observacao: t.observacao,
+            estrutura: t.estrutura,
+            sugestao_id: t.sugestao_id,
           })),
         ),
       )

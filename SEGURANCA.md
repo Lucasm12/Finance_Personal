@@ -9,12 +9,13 @@ Nada aqui significa que o sistema esteja "100% seguro".
 | Camada | Tecnologia | Observação de segurança |
 |---|---|---|
 | Frontend | React 19 + Vite 8 + TypeScript, servido como arquivos estáticos pela Vercel | Não é confiável: toda regra de acesso está no banco |
-| "Backend" | Supabase: Auth (GoTrue), API REST (PostgREST), Postgres 15+ | Não há servidor próprio (a antiga função do Strava foi removida) |
+| "Backend" | Supabase: Auth (GoTrue), API REST (PostgREST), Postgres 15+; uma função serverless na Vercel ([api/ai-endurance.ts](api/ai-endurance.ts)) | A função só existe para guardar a chave da AI Endurance (a antiga função do Strava foi removida) |
 | Autorização | Row Level Security em **todas** as tabelas + permissões por coluna | Política "só o dono" (`auth.uid() = user_id`) |
 | Integridade entre tabelas | Chaves estrangeiras compostas `(id, user_id)` | Impedem ligar um registro a dado de outra conta |
 | Funções no banco | `security invoker` (respeitam RLS) ou `security definer` com `search_path` fixo | Nenhum SQL dinâmico com dado do usuário |
 | E-mail | pg_cron + pg_net → Resend; chave no Supabase Vault | Única saída de rede do banco, para URL fixa |
 | Integração externa | ExerciseDB (GIFs e instruções), chamada pelo navegador, sem chave | Só recebe o termo/id pesquisado |
+| Integração externa | AI Endurance Partner API, **só pelo servidor** (função da Vercel), opcional | Chave de parceiro em variável de ambiente; o navegador nunca a vê |
 | Arquivos | Importação .fit/.tcx/.gpx/.csv/.zip lida **no navegador**; nada é enviado como arquivo | Sem upload para servidor |
 | Segredos | `.env.local` (fora do git) com URL e chave **pública** do Supabase | A chave pública é feita para ficar no navegador |
 
@@ -70,9 +71,38 @@ mensagem que não revela se o e-mail existe; "Sair" invalida a sessão no servid
 | [vercel.json](vercel.json) | CSP (`script-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, conexões só para Supabase e ExerciseDB, imagens só da ExerciseDB), X-Frame-Options, nosniff, HSTS, Referrer-Policy, Permissions-Policy, COOP/CORP |
 | [index.html](index.html), [public/tema.js](public/tema.js) | Script do tema saiu do HTML (a CSP proíbe scripts embutidos) |
 | [src/lib/exportar.ts](src/lib/exportar.ts) | Célula de CSV que começa com `= + - @` ganha apóstrofo |
-| [src/lib/importacaoArquivos.ts](src/lib/importacaoArquivos.ts) | Arquivo até 300 MB; .zip até 600 MB descompactado e 5.000 arquivos; .gz até 200 MB — conferido pelo tamanho declarado, antes de descompactar |
+| [src/lib/importacao/arquivos.ts](src/lib/importacao/arquivos.ts) | Arquivo até 300 MB; .zip até 600 MB descompactado e 5.000 arquivos; .gz até 200 MB — conferido pelo tamanho declarado, antes de descompactar |
 | [src/lib/forca/exercisedb.ts](src/lib/forca/exercisedb.ts) | Tempo limite de 10 s, sem cookies/referrer; validação de id (`[A-Za-z0-9]{5,12}`) antes de montar URL ou consulta; respostas e cache validados e com tamanho limitado; GIF sempre do domínio oficial |
 | [src/components/DialogPrivacidade.tsx](src/components/DialogPrivacidade.tsx), [src/hooks/usePrivacidade.ts](src/hooks/usePrivacidade.ts) | Finalidade de cada dado, **Baixar meus dados (JSON)** e **Excluir minha conta** (pede a senha de novo e a palavra EXCLUIR) |
+
+### Endurance — [supabase/migrations/20261102130000_endurance.sql](supabase/migrations/20261102130000_endurance.sql) e [api/ai-endurance.ts](api/ai-endurance.ts) (02/11/2026)
+
+Tabelas criadas depois da migração 9 não recebem as proteções automaticamente; esta migração repete o padrão à mão:
+
+1. **`treino_parciais` e `sugestoes_salvas`**: RLS "só o dono", sem acesso anônimo, `grant` explícito para
+   `authenticated`, FK composta `(treino_id, user_id)` e `(sugestao_id, user_id)` (não dá para pendurar parcial no treino
+   de outra pessoa nem agendar a sugestão de outra), limites em todo texto (nome 120, descrição 2.000, estilo 40,
+   referência 120), JSON da estrutura até 64 KB e só objeto, faixas numéricas (FC 30–250, potência até 3.000 W…).
+   Exclusões de sugestões salvas entram na auditoria; as parciais não (são recriadas a cada reimportação e já somem
+   com o treino, que é auditado).
+2. **`importar_treinos(jsonb)`**: `security invoker` (o RLS vale), `search_path` fixo, colunas gravadas uma a uma (o
+   `user_id` do JSON é ignorado — vale `auth.uid()`), lote de 1 a 50 treinos e até 2.000 parciais por treino, origem
+   obrigatória (`arquivo` ou `ai_endurance`), tudo numa transação. A checagem de duplicidade usa só os treinos do
+   próprio usuário. Execução liberada só para `authenticated`.
+3. **Vínculo com a AI Endurance**: uma chave de parceiro lê **qualquer** atleta do parceiro, então o atleta de cada
+   usuário fica em `privado.ai_endurance_atletas` (fora da API; só o dono do projeto grava, pelo SQL Editor) e
+   `public.ai_endurance_atleta()` (`security definer`, `search_path` fixo) devolve apenas o do usuário do token. Id do
+   atleta validado (`[A-Za-z0-9_-]{1,64}`).
+4. **Função da Vercel**: exige `Authorization: Bearer <token do Supabase>` e valida o token chamando a função acima no
+   próprio Supabase (assinatura conferida pelo PostgREST); o atleta vem do banco, **nunca da URL** (`?user=` é
+   ignorado); só três ações (`status`, `atividades`, `treinos`) e só GET; modalidade e página validadas; ids da
+   AI Endurance validados antes de entrar em URL; tempo limite de 20 s; resposta da AI Endurance até 4 MB e só JSON;
+   erros traduzidos sem repassar o corpo de erro de terceiros nem a chave; do perfil do atleta, só zonas, CSS e `.zwo`
+   voltam ao navegador; respostas com `Cache-Control: no-store`. A CSP não mudou: o navegador fala só com a mesma
+   origem (`/api`).
+5. **Dados da AI Endurance no navegador** são tratados como não confiáveis: campos convertidos e limitados (textos
+   cortados, números conferidos por faixa antes de gravar, mesmas faixas do banco), `.zip` de `.zwo` limitado a 20 MB
+   descompactado e 200 arquivos, XML lido com `DOMParser` (sem executar nada).
 
 ## 4. Testes automatizados
 
@@ -106,6 +136,16 @@ Resultado em 01/11/2026: **62 testes passando**, `npm audit`: 0 vulnerabilidades
   adiantado/atrasado, hábitos, metas, resumo da semana). No frontend: leitor do módulo da Bíblia usado pelo seed e
   conferência do texto antes de gravar. Total do projeto em 01/11/2026: **107 testes passando**.
 
+- **Endurance** ([tests/banco/endurance.test.ts](tests/banco/endurance.test.ts),
+  [tests/frontend/endurance.test.ts](tests/frontend/endurance.test.ts), [tests/api/ai-endurance.test.ts](tests/api/ai-endurance.test.ts)):
+  importação sem duplicidade (mesmo arquivo, outra fonte a 2 min, "completar" mantendo nome/anotação, reimportação
+  substitui as parciais, transação desfeita com valor inválido, lote vazio/grande demais, sem login); deduplicação só
+  contra os próprios treinos; FK composta das parciais e das sugestões; vínculo da AI Endurance ilegível e imutável
+  para o usuário. Na função da Vercel: sem token, token inválido, ação/método/modalidade/página inválidos, `?user=` da
+  URL ignorado, chave de parceiro ausente das respostas (inclusive em erro), 401/404/429/5xx/tempo limite/resposta não
+  JSON da AI Endurance e filtragem dos dados do atleta. Também: cálculo das parciais, `.fit` gerado com o encoder
+  oficial, catálogo, zonas, recomendação e planejado × realizado. Total do projeto em 02/11/2026: **232 testes passando**.
+
 **Não testado aqui**: o projeto Supabase real (as migrações foram validadas no PGlite, não no seu banco), os
 cabeçalhos servidos de fato pela Vercel, e varreduras dinâmicas (OWASP ZAP) e SAST (Semgrep) — recomendadas na seção 7.
 
@@ -118,6 +158,9 @@ cabeçalhos servidos de fato pela Vercel, e varreduras dinâmicas (OWASP ZAP) e 
 | Sem limite de requisições por usuário na API REST | O PostgREST hospedado não oferece isso | Cadastro fechado + limites de tamanho; Auth tem limites próprios (seção 6) |
 | Lembrete para qualquer endereço | Regra de negócio: pode mandar para outra pessoa da família | Link e frequência travados; com cadastro fechado, só contas autorizadas |
 | `style-src 'unsafe-inline'` na CSP | Gráficos e componentes usam estilo inline | Scripts continuam bloqueados |
+| Chave de parceiro da AI Endurance com alcance amplo | A Partner API usa uma chave por parceiro, não por atleta (sem OAuth) | Chave só no servidor; atleta definido no banco pelo dono; trocar a chave no admin da AI Endurance se vazar |
+| Formato das respostas da AI Endurance não verificado | O formato das atividades só está no ReDoc com login de parceiro | Leitura defensiva com limites; o que não é reconhecido vira aviso, não erro |
+| Sem limite de requisições próprio na função da Vercel | Plano gratuito, sem armazenamento para contar pedidos | Exige sessão válida; a AI Endurance limita 1.000 req/h por atleta |
 | Backups | Plano gratuito do Supabase não tem backup automático | Seção 6 (exportação e plano pago) |
 | Chave secreta no seed da Bíblia | Gravar o texto exige ignorar o RLS (as tabelas da Bíblia são somente leitura para o app) | O script roda só no computador do dono, lê a chave do terminal, recusa a chave pública e nunca a imprime; não vai para a Vercel nem para o git (veja o README) |
 | Demonstrações da ExerciseDB | Serviço de terceiros, limite de consultas estrito, uso só não comercial com crédito | Tempo limite, validação, cache; crédito na tela |

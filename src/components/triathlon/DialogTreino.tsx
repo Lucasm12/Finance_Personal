@@ -2,12 +2,15 @@ import { useState, type FormEvent } from 'react'
 import { LoaderCircleIcon, Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { TabelaParciais } from '@/components/triathlon/parciais/TabelaParciais'
 import { SeletorModalidade } from '@/components/triathlon/SeletorModalidade'
+import { ComparacaoPlano } from '@/components/triathlon/sugestoes/ComparacaoPlano'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { useParciais, usePlanejadoDoTreino } from '@/hooks/useParciais'
 import { useExcluirTreino, useSalvarTreino } from '@/hooks/useTriathlon'
 import {
   cargaTreino,
@@ -128,12 +131,27 @@ interface FormProps {
   onFechar: () => void
 }
 
+type Aba = 'parciais' | 'plano' | 'editar'
+
+const ORIGEM: Record<Treino['origem'], string> = { manual: 'registrado à mão', arquivo: 'importado de arquivo', ai_endurance: 'importado da AI Endurance' }
+
 function FormTreino({ treino, perfil, onFechar }: FormProps) {
   const salvar = useSalvarTreino()
   const excluir = useExcluirTreino()
   const [f, setF] = useState(() => inicial(treino))
   const [erro, setErro] = useState('')
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
+  const parciais = useParciais(treino?.id)
+  const planejado = usePlanejadoDoTreino(treino?.id)
+  const [aba, setAba] = useState<Aba>(treino && treino.origem !== 'manual' ? 'parciais' : 'editar')
+  const abas: [Aba, string][] = treino
+    ? [
+        ['parciais', 'Parciais'],
+        ...(planejado.data ? ([['plano', 'Planejado × realizado']] as [Aba, string][]) : []),
+        ['editar', 'Editar dados'],
+      ]
+    : []
+  const arquivo = typeof treino?.dados?.arquivo === 'string' ? treino.dados.arquivo : null
   const set = <K extends keyof Formulario>(k: K, v: Formulario[K]) => setF((a) => ({ ...a, [k]: v }))
 
   async function enviar(e: FormEvent) {
@@ -194,13 +212,47 @@ function FormTreino({ treino, perfil, onFechar }: FormProps) {
         <DialogTitle>{treino ? treino.nome : 'Novo treino'}</DialogTitle>
         <DialogDescription>
           {treino
-            ? `${MODALIDADES[treino.modalidade].nome} · ${new Date(treino.data_hora).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' })}`
-            : 'Preencha os dados do treino à mão (ou use Importar para trazer arquivos do relógio).'}
+            ? `${MODALIDADES[treino.modalidade].nome} · ${new Date(treino.data_hora).toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' })} · ${ORIGEM[treino.origem]}${arquivo && treino.origem === 'arquivo' ? ` (${arquivo})` : ''}`
+            : 'Preencha os dados do treino à mão (ou use Importar treino para trazer o arquivo do relógio, com as parciais).'}
         </DialogDescription>
       </DialogHeader>
 
       {treino && <Resumo t={treino} perfil={perfil} />}
 
+      {abas.length > 0 && (
+        <div className="border-b" role="tablist" aria-label="Detalhes do treino">
+          {abas.map(([v, rotulo]) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={aba === v}
+              onClick={() => setAba(v)}
+              className={cn(
+                '-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+                aba === v ? 'border-primary text-foreground' : 'text-muted-foreground hover:text-foreground border-transparent',
+              )}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {treino && aba === 'parciais' && <TabelaParciais modalidade={treino.modalidade} parciais={parciais.data} carregando={parciais.isLoading} />}
+      {treino && aba === 'plano' && planejado.data && (
+        <ComparacaoPlano planejado={planejado.data} treino={treino} parciais={parciais.data ?? []} perfil={perfil} />
+      )}
+      {treino && aba !== 'editar' && (
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onFechar}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      )}
+
+      {(!treino || aba === 'editar') && (
+        <>
       <SeletorModalidade value={f.modalidade} onChange={(m) => set('modalidade', m)} />
       <div className="grid gap-1.5">
         <Label htmlFor="nome-treino" className="text-xs">
@@ -297,6 +349,8 @@ function FormTreino({ treino, perfil, onFechar }: FormProps) {
           </div>
         </DialogFooter>
       )}
+        </>
+      )}
     </form>
   )
 }
@@ -311,7 +365,7 @@ interface Props {
 export function DialogTreino({ aberto, treino, perfil, onFechar }: Props) {
   return (
     <Dialog open={aberto} onOpenChange={(v) => !v && onFechar()}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className={cn('max-h-[92dvh] overflow-y-auto', treino ? 'sm:max-w-3xl' : 'sm:max-w-xl')}>
         {aberto && <FormTreino key={treino?.id ?? 'novo'} treino={treino} perfil={perfil} onFechar={onFechar} />}
       </DialogContent>
     </Dialog>
