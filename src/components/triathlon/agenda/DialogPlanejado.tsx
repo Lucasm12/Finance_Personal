@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { LoaderCircleIcon, Trash2Icon } from 'lucide-react'
+import { LoaderCircleIcon, Trash2Icon, WatchIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { DialogExportarGarmin } from '@/components/triathlon/agenda/DialogExportarGarmin'
 import { EditorExercicios, ListaExercicios } from '@/components/triathlon/forca/Exercicios'
 import { SeletorModalidade } from '@/components/triathlon/SeletorModalidade'
 import { ComparacaoDoPlanejado } from '@/components/triathlon/sugestoes/ComparacaoPlano'
@@ -13,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { useSugestoesSalvas } from '@/hooks/useSugestoes'
+import type { TreinoParaExportar } from '@/lib/exportacao/garmin'
 import { useExcluirTreinoPlanejado, usePerfilAtleta, useRotinaAtiva, useSalvarTreinoPlanejado, useSeriesForca } from '@/hooks/useTriathlon'
 import { emMetros, MODALIDADES_AGENDA, naUnidade, ORDEM_STATUS, STATUS, UNIDADE } from '@/lib/agenda'
 import { NOMES_GRUPO, NOMES_NIVEL } from '@/lib/forca/exercicios'
@@ -81,6 +83,7 @@ function FormPlanejado({ treino, dataInicial, onFechar }: FormProps) {
   const [sugestaoId, setSugestaoId] = useState<string | null>(treino?.sugestao_id ?? null)
   const [nivelCatalogo, setNivelCatalogo] = useState<NivelForca>(treino?.estrutura?.nivel ?? 'intermediario')
   const [verComparacao, setVerComparacao] = useState(false)
+  const [exportando, setExportando] = useState<TreinoParaExportar | null>(null)
   const estruturaValida = !academia && estrutura?.modalidade === modalidade ? estrutura : null
   const salvasDaModalidade = (salvas.data ?? []).filter((s) => s.modalidade === modalidade)
   const catalogo = CATALOGO.filter((x) => x.modalidade === modalidade && x.niveis.includes(nivelCatalogo))
@@ -112,6 +115,20 @@ function FormPlanejado({ treino, dataInicial, onFechar }: FormProps) {
       modelo.nome,
       null,
     )
+  }
+
+  /** Leva para o relógio o que está no formulário (mesmo sem salvar). */
+  function exportarGarmin() {
+    const km = lerNumero(distancia)
+    setExportando({
+      data: data || dataLocal(new Date()),
+      nome: nome.trim() || MODALIDADES[modalidade].nome,
+      modalidade,
+      descricao: descricao.trim() || null,
+      estrutura: estruturaValida,
+      distancia_planejada_m: km !== null && Number.isFinite(km) && km > 0 ? emMetros(modalidade, km) : null,
+      duracao_planejada_seg: duracao.trim() ? lerDuracao(duracao) : null,
+    })
   }
 
   function escolherTreinoRotina(letra: string) {
@@ -292,17 +309,23 @@ function FormPlanejado({ treino, dataInicial, onFechar }: FormProps) {
             </NativeSelect>
           </div>
           {estruturaValida ? (
-            <>
-              <VisaoEstrutura estrutura={estruturaValida} perfil={perfil.data} compacta />
-              <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setEstrutura(null)}>
-                Remover estrutura
-              </Button>
-            </>
+            <VisaoEstrutura estrutura={estruturaValida} perfil={perfil.data} compacta />
           ) : (
             <p className="text-muted-foreground text-[11px]">
               Com estrutura (aquecimento, séries e desaquecimento), o treino importado depois pode ser comparado com o planejado. Mais opções na aba Endurance.
             </p>
           )}
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" className="w-fit" onClick={exportarGarmin}>
+              <WatchIcon />
+              Levar para o relógio Garmin
+            </Button>
+            {estruturaValida && (
+              <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setEstrutura(null)}>
+                Remover estrutura
+              </Button>
+            )}
+          </div>
           {treino?.status === 'concluido' && treino.treino_id && treino.estrutura && (
             <div className="grid gap-2 border-t pt-2">
               <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setVerComparacao(!verComparacao)}>
@@ -426,6 +449,8 @@ function FormPlanejado({ treino, dataInicial, onFechar }: FormProps) {
           </div>
         </DialogFooter>
       )}
+      {/* abre num diálogo por cima (em portal, fora do formulário) */}
+      <DialogExportarGarmin treino={exportando} onFechar={() => setExportando(null)} />
     </form>
   )
 }

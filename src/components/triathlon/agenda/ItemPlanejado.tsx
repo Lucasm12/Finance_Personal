@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { FileUpIcon, PencilIcon } from 'lucide-react'
+import { FileUpIcon, PencilIcon, WatchIcon } from 'lucide-react'
 
 import { DialogConcluir } from '@/components/triathlon/agenda/DialogConcluir'
+import { DialogExportarGarmin } from '@/components/triathlon/agenda/DialogExportarGarmin'
 import { DialogExecucao } from '@/components/triathlon/forca/DialogExecucao'
 import { DialogImportar } from '@/components/triathlon/importacao/DialogImportar'
 import { IconeModalidade } from '@/components/triathlon/LinhaTreino'
@@ -76,11 +77,15 @@ export function ItemPlanejado({ treino: t, onEditar, dia }: Props) {
   const [concluindo, setConcluindo] = useState(false)
   const [executando, setExecutando] = useState(false)
   const [importando, setImportando] = useState(false)
+  const [exportando, setExportando] = useState(false)
   const efetivo = statusEfetivo(t)
   // academia com exercícios: o registro é série por série
   const exercicios = t.modalidade === 'forca' ? (t.exercicios ?? []) : []
   // corrida, pedal e natação ainda sem atividade: dá para importar o arquivo do treino feito
   const podeImportar = t.modalidade !== 'forca' && !t.treino_id
+  // corrida, pedal e natação por fazer: dá para levar o treino para o relógio Garmin
+  // (no celular fica no diálogo de edição, para não apertar a linha)
+  const podeExportar = t.modalidade !== 'forca' && t.status !== 'concluido'
 
   function mudarStatus(s: StatusTreino) {
     // concluído abre os campos do que foi feito (também para corrigir um já concluído)
@@ -122,6 +127,18 @@ export function ItemPlanejado({ treino: t, onEditar, dia }: Props) {
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
+        {podeExportar && (
+          <Button
+            variant="outline"
+            size="icon-sm"
+            className="hidden size-8 sm:inline-flex"
+            aria-label={`Levar ${t.nome} para o relógio Garmin`}
+            title="Levar para o relógio Garmin (.fit)"
+            onClick={() => setExportando(true)}
+          >
+            <WatchIcon />
+          </Button>
+        )}
         {podeImportar && (
           <Button
             variant="outline"
@@ -153,6 +170,7 @@ export function ItemPlanejado({ treino: t, onEditar, dia }: Props) {
       />
       <DialogExecucao treino={executando ? t : null} onFechar={() => setExecutando(false)} />
       {t.modalidade !== 'forca' && <DialogImportar aberto={importando} planejado={t} onFechar={() => setImportando(false)} />}
+      <DialogExportarGarmin treino={exportando ? t : null} onFechar={() => setExportando(false)} />
     </li>
   )
 }

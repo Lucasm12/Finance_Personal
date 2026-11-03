@@ -253,7 +253,7 @@ export function DialogDia({ data, treinos, provas, onFechar, onNovo, onEditar }:
               <DialogTitle>{diaPorExtenso(data)}</DialogTitle>
               <DialogDescription>
                 {lista.length
-                  ? 'Marque a situação de cada treino, importe o treino feito (botão com a seta) ou toque no nome para editar e reagendar.'
+                  ? 'Marque a situação de cada treino, leve para o relógio Garmin (botão do relógio), importe o treino feito (botão com a seta) ou toque no nome para editar e reagendar.'
                   : 'Nenhum treino planejado neste dia.'}
               </DialogDescription>
             </DialogHeader>
