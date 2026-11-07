@@ -132,6 +132,9 @@ export function FundoAnimado() {
       if (reduzido) desenhar()
     }
     function aoRedimensionar() {
+      // No celular, a barra do navegador que aparece/some dispara "resize" sem mudar o tamanho do
+      // fundo: sem essa verificação, os pontos seriam sorteados de novo (um "pulo" na animação).
+      if (canvas!.clientWidth === largura && canvas!.clientHeight === altura) return
       redimensionar()
       if (reduzido) desenhar()
     }

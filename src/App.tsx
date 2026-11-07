@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { Carregando } from '@/components/Carregando'
 import { LayoutFinanceiro } from '@/components/layout/LayoutFinanceiro'
@@ -7,12 +7,14 @@ import { LayoutPessoal } from '@/components/layout/LayoutPessoal'
 import { LayoutTriathlon } from '@/components/layout/LayoutTriathlon'
 import { useAuth } from '@/hooks/useAuth'
 import { supabaseConfigurado } from '@/lib/supabase'
+import { ROTA_INICIO, ROTA_LOGIN, ROTA_MODULOS } from '@/modulos'
 import ConfiguracaoAusente from '@/pages/ConfiguracaoAusente'
-import Dashboard from '@/pages/Dashboard'
 import Login from '@/pages/Login'
+import Portfolio from '@/pages/Portfolio'
 import SelecaoModulo from '@/pages/SelecaoModulo'
 
-// Financeiro
+// Financeiro (sob demanda: quem só visita o portfólio não baixa o código do sistema)
+const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Contas = lazy(() => import('@/pages/Contas'))
 const Categorias = lazy(() => import('@/pages/Categorias'))
 const Historico = lazy(() => import('@/pages/Historico'))
@@ -40,21 +42,27 @@ const Diario = lazy(() => import('@/pages/pessoal/Diario'))
 function Protegida({ children }: { children: ReactNode }) {
   const { sessao, carregando } = useAuth()
   if (carregando) return <Carregando />
-  if (!sessao) return <Navigate to="/login" replace />
+  if (!sessao) return <Navigate to={ROTA_LOGIN} replace />
   return children
 }
 
 export default function App() {
-  if (!supabaseConfigurado) return <ConfiguracaoAusente />
+  const { pathname } = useLocation()
+
+  // O portfólio é público e não usa o banco: abre mesmo sem o Supabase configurado.
+  if (!supabaseConfigurado && pathname !== ROTA_INICIO) return <ConfiguracaoAusente />
 
   return (
     <Suspense fallback={<Carregando />}>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* Página inicial pública: portfólio, com o botão "Acessar sistema" que leva ao login */}
+        <Route path={ROTA_INICIO} element={<Portfolio />} />
+
+        <Route path={ROTA_LOGIN} element={<Login />} />
 
         {/* Depois do login: escolha do módulo */}
         <Route
-          path="/"
+          path={ROTA_MODULOS}
           element={
             <Protegida>
               <SelecaoModulo />

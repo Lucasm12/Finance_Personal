@@ -1,0 +1,11 @@
+# Só o portfólio (página inicial) é público; o sistema exige login.
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /sistema
+Disallow: /financeiro
+Disallow: /triathlon
+Disallow: /pessoal
+Disallow: /api/
+
+Sitemap: https://lucasmarques.dev.br/sitemap.xml

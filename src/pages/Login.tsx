@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import {
+  ArrowLeftIcon,
   ArrowRightIcon,
   CheckIcon,
   EyeIcon,
@@ -18,6 +19,7 @@ import { mensagemErro } from '@/lib/erros'
 import { supabase } from '@/lib/supabase'
 import { saudacao } from '@/lib/texto'
 import { cn } from '@/lib/utils'
+import { ROTA_INICIO, ROTA_MODULOS } from '@/modulos'
 
 type Estado = 'ocioso' | 'entrando' | 'sucesso'
 
@@ -108,7 +110,7 @@ export default function Login() {
   }, [falhas])
 
   // Já logado ao abrir a página: vai para a escolha do módulo. Durante o login, espera a animação de sucesso.
-  if (!carregando && sessao && estado === 'ocioso') return <Navigate to="/" replace />
+  if (!carregando && sessao && estado === 'ocioso') return <Navigate to={ROTA_MODULOS} replace />
 
   function falhar(mensagem: string) {
     setEstado('ocioso')
@@ -131,8 +133,8 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithPassword({ email: emailInformado, password: senhaInformada })
       if (error) throw error
       setEstado('sucesso')
-      // "/" é a escolha do módulo (Financeiro, Triathlon...)
-      setTimeout(() => navigate('/', { replace: true }), 900)
+      // ROTA_MODULOS é a escolha do módulo (Financeiro, Triathlon...); "/" é o portfólio público
+      setTimeout(() => navigate(ROTA_MODULOS, { replace: true }), 900)
     } catch (problema) {
       falhar(mensagemErro(problema))
       setFalhas((n) => n + 1)
@@ -147,6 +149,13 @@ export default function Login() {
 
   return (
     <FundoTecnologico>
+      <Link
+        to={ROTA_INICIO}
+        className="absolute top-4 left-4 z-20 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-xs text-white/50 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:outline-none sm:top-6 sm:left-6"
+      >
+        <ArrowLeftIcon className="size-3.5" />
+        portfólio
+      </Link>
       <main className="animate-in fade-in slide-in-from-bottom-4 relative z-10 w-full max-w-sm duration-700">
         <div
           onPointerMove={moverLuzCartao}

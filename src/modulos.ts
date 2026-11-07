@@ -35,6 +35,13 @@ export const MODULO_PESSOAL: Modulo = {
   icone: SunriseIcon,
 }
 
+/** Página inicial pública: o portfólio (não exige login). */
+export const ROTA_INICIO = '/'
+/** Tela de login (a única do app). */
+export const ROTA_LOGIN = '/login'
+/** Escolha do módulo: primeira tela depois do login. */
+export const ROTA_MODULOS = '/sistema'
+
 /** Módulos mostrados depois do login, na ordem. */
 export const MODULOS: Modulo[] = [MODULO_FINANCEIRO, MODULO_TRIATHLON, MODULO_PESSOAL]
 

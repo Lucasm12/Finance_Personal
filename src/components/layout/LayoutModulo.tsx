@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useTema, type Tema } from '@/hooks/useTema'
 import { cn } from '@/lib/utils'
-import { lembrarModulo, type Modulo } from '@/modulos'
+import { lembrarModulo, ROTA_MODULOS, type Modulo } from '@/modulos'
 
 export interface LinkModulo {
   para: string
@@ -118,7 +118,7 @@ export function LayoutModulo({ modulo, links = [], itensMenu, extras }: Props) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {itensMenu}
-                <DropdownMenuItem onSelect={() => navigate('/')}>
+                <DropdownMenuItem onSelect={() => navigate(ROTA_MODULOS)}>
                   <LayoutGridIcon />
                   Trocar de módulo
                 </DropdownMenuItem>

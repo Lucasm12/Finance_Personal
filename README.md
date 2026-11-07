@@ -1,7 +1,26 @@
 # Lucas Marques Dev
 
-Plataforma com módulos. Depois do login, o usuário escolhe em qual entrar (atalhos: teclas 1, 2...),
+A página inicial (`/`) é o **portfólio profissional** público. O botão **Acessar sistema** (no topo e no
+rodapé) leva à tela de login (`/login`), a mesma de sempre.
+
+| Endereço | O que é | Login |
+|---|---|---|
+| `/` | Portfólio: sobre, experiência, habilidades, formação (com publicações) e contato | não |
+| `/login` | Tela de login (Supabase Auth) | — |
+| `/sistema` | Escolha do módulo, primeira tela depois do login | sim |
+| `/financeiro`, `/triathlon`, `/pessoal` | Módulos | sim |
+
+Depois do login, o usuário escolhe em qual módulo entrar (atalhos: teclas 1, 2...),
 e dentro de cada módulo pode trocar de módulo tocando no nome dele no topo da tela.
+O app instalado no celular (PWA) abre direto em `/sistema`.
+
+**Textos do portfólio:** ficam todos em [src/lib/portfolio.ts](src/lib/portfolio.ts) (experiências, habilidades,
+projetos, formação e contatos); as seções estão em [src/components/portfolio/](src/components/portfolio/) e a página
+em [src/pages/Portfolio.tsx](src/pages/Portfolio.tsx). A seção **Projetos** está fora da página por enquanto: o
+componente e os dados continuam no código; para voltar, inclua `<Projetos />` em `Portfolio.tsx`, o link em
+`LINKS_SECOES` (Navegacao.tsx) e ajuste a numeração das seções. As fontes (Geist, Geist Mono e Instrument Serif) vêm do npm
+(`@fontsource`) e são servidas pelo próprio site, como a CSP exige. O domínio usado no SEO
+(`index.html`, `public/robots.txt`, `public/sitemap.xml`) é `https://lucasmarques.dev.br`.
 
 | Módulo | Endereço | Situação |
 |---|---|---|
@@ -548,16 +567,16 @@ Enquanto o texto não for importado, o app mostra um aviso na tela da Bíblia (o
 
 ```
 src/
-  modulos.ts      lista de módulos e as rotas de cada um
-  pages/          Login, SelecaoModulo, Dashboard (Mês), Economia, Contas, Categorias, Historico
+  modulos.ts      lista de módulos e as rotas de cada um (ROTA_INICIO, ROTA_LOGIN, ROTA_MODULOS)
+  pages/          Portfolio (página inicial pública), Login, SelecaoModulo, Dashboard (Mês), Economia, Contas, Categorias, Historico
   pages/triathlon/   Painel, Treinos, Agenda, Evolucao, Corpo, Nutricao, Provas, PerfilAtleta
   pages/pessoal/     MeuDia, Biblia, Leitura, Metas, Habitos, Tarefas, Diario
   components/     layout/ (LayoutModulo, TrocarModulo, LayoutFinanceiro, LayoutTriathlon),
-                  login/ (fundo animado), dashboard/, economia/, contas/,
+                  login/ (fundo animado), portfolio/ (seções da página inicial), dashboard/, economia/, contas/,
                   triathlon/ (agenda/, corpo/, forca/, importacao/, parciais/, sugestoes/),
                   pessoal/ (biblia/, metas/, habitos/, tarefas/), ui/ (shadcn)
   hooks/          useDados, useEconomia, useTriathlon, useParciais, useSugestoes, useAiEndurance, usePessoal, useBiblia (React Query), useAuth, useTema, useCompetencia
-  lib/            format, exportar (Excel/CSV), triathlon (carga, forma, ritmos), corpo (IMC, gordura, faixas), agenda (semanas, metas, situação), forca/ (catálogo de exercícios, recomendação, progressão),
+  lib/            portfolio (conteúdo do portfólio), format, exportar (Excel/CSV), triathlon (carga, forma, ritmos), corpo (IMC, gordura, faixas), agenda (semanas, metas, situação), forca/ (catálogo de exercícios, recomendação, progressão),
                   importacao/ (arquivos FIT/TCX/GPX/CSV, duplicidade), parciais/ (por km, volta, piscina; destaques),
                   sugestoes/ (zonas, catálogo, estrutura, recomendação, planejado × realizado),
                   integracao-ai-endurance/ (cliente, atividades, treinos "steps" e .zwo), pessoal (datas em São Paulo, planos, situação da leitura)

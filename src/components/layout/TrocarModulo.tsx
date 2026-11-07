@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MODULOS, type Modulo } from '@/modulos'
+import { MODULOS, ROTA_MODULOS, type Modulo } from '@/modulos'
 
 /** Nome do módulo no cabeçalho; ao tocar, permite ir para outro módulo. */
 export function TrocarModulo({ atual }: { atual: Modulo }) {
@@ -51,7 +51,7 @@ export function TrocarModulo({ atual }: { atual: Modulo }) {
           )
         })}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => navigate('/')}>
+        <DropdownMenuItem onSelect={() => navigate(ROTA_MODULOS)}>
           <LayoutGridIcon />
           Tela de módulos
         </DropdownMenuItem>
