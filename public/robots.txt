@@ -8,4 +8,4 @@ Disallow: /triathlon
 Disallow: /pessoal
 Disallow: /api/
 
-Sitemap: https://lucasmarques.dev.br/sitemap.xml
+Sitemap: https://www.lucasmarquesdev.com.br/sitemap.xml

@@ -1,6 +1,7 @@
 /*
- * Portfólio (página inicial pública): tipografia, revelação ao rolar, letreiro, terminal e brilhos.
- * Reaproveita a grade, o brilho e a luz dos cartões do login (login.css).
+ * Portfólio (página inicial pública): tipografia, brilho do topo e detalhes visuais.
+ * Conteúdo nunca fica escondido esperando animação: textos e ações aparecem de imediato.
+ * Reaproveita a grade e a luz dos cartões do login (login.css).
  * As fontes vêm empacotadas pelo Vite (font-src 'self' na CSP), não de um CDN.
  */
 
@@ -8,6 +9,7 @@ html.portfolio {
   background-color: #06080a;
   color-scheme: dark;
   scroll-behavior: smooth;
+  /* altura do cabeçalho fixo (4rem) + folga: as âncoras não ficam escondidas atrás dele */
   scroll-padding-top: 5.5rem;
 }
 
@@ -38,106 +40,37 @@ html.portfolio body {
 
 /* texto com degradê vertical (nome no topo) */
 .pf-texto-gradiente {
-  background-image: linear-gradient(180deg, #fff 35%, rgb(255 255 255 / 0.55));
+  background-image: linear-gradient(180deg, #fff 40%, rgb(255 255 255 / 0.72));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* letras vazadas no letreiro */
-.pf-vazado {
-  color: transparent;
-  -webkit-text-stroke: 1px rgb(255 255 255 / 0.28);
-}
-
-/* ---------- entrada do topo ---------- */
-.pf-entrada {
-  animation: pf-entrada 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: var(--atraso, 0ms);
-}
-
-@keyframes pf-entrada {
-  from {
-    opacity: 0;
-    translate: 0 1.25rem;
-    filter: blur(6px);
-  }
-}
-
-/* ---------- revelação ao rolar ---------- */
-.pf-revelar {
-  opacity: 0;
-  translate: 0 1.5rem;
-  transition:
-    opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1),
-    translate 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
-  transition-delay: var(--atraso, 0ms);
-}
-
-.pf-revelar[data-visivel='true'] {
-  opacity: 1;
-  translate: 0 0;
-}
-
-/* ---------- aurora atrás do nome ---------- */
+/* brilho verde estático atrás do topo e do contato (sem animação) */
 .pf-aurora {
   background:
-    radial-gradient(closest-side, rgb(16 185 129 / 0.22), transparent),
-    radial-gradient(closest-side at 70% 60%, rgb(45 212 191 / 0.12), transparent);
-  filter: blur(40px);
-  animation: pf-aurora 16s ease-in-out infinite alternate;
+    radial-gradient(closest-side, rgb(16 185 129 / 0.16), transparent),
+    radial-gradient(closest-side at 70% 60%, rgb(45 212 191 / 0.08), transparent);
 }
 
-@keyframes pf-aurora {
-  to {
-    transform: translate(4%, 6%) scale(1.15) rotate(8deg);
+/* surgimento curto do terminal (sem deslocamento nem desfoque) */
+.pf-surgir {
+  animation: pf-surgir 0.35s ease-out both;
+}
+
+@keyframes pf-surgir {
+  from {
+    opacity: 0;
   }
 }
 
-/* ---------- letreiro de ferramentas ---------- */
-.pf-letreiro-mascara {
-  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
-}
-
-.pf-letreiro {
-  animation: pf-letreiro 50s linear infinite;
-}
-
-.pf-letreiro-mascara:hover .pf-letreiro {
-  animation-play-state: paused;
-}
-
-@keyframes pf-letreiro {
-  to {
-    translate: -50% 0;
-  }
-}
-
-/* ---------- terminal ---------- */
-.pf-cursor {
-  animation: pf-piscar 1.1s steps(2, start) infinite;
-}
-
-@keyframes pf-piscar {
-  to {
-    visibility: hidden;
-  }
-}
-
-/* inclinação 3D que acompanha o cursor */
-.pf-inclinar {
-  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
-  will-change: transform;
-}
-
-/* ---------- barra de progresso da leitura ---------- */
+/* barra de progresso da leitura, no topo do cabeçalho */
 .pf-progresso {
   transform-origin: left center;
   transform: scaleX(var(--progresso, 0));
 }
 
-/* ---------- borda com degradê nos cartões em destaque ---------- */
+/* borda com degradê nos cartões em destaque */
 .pf-borda {
   position: relative;
 }
@@ -148,7 +81,7 @@ html.portfolio body {
   inset: 0;
   padding: 1px;
   border-radius: inherit;
-  background: linear-gradient(140deg, rgb(52 211 153 / 0.55), rgb(255 255 255 / 0.06) 40%, rgb(255 255 255 / 0.04) 70%, rgb(52 211 153 / 0.3));
+  background: linear-gradient(140deg, rgb(52 211 153 / 0.55), rgb(255 255 255 / 0.08) 40%, rgb(255 255 255 / 0.06) 70%, rgb(52 211 153 / 0.3));
   mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -161,21 +94,7 @@ html.portfolio body {
     scroll-behavior: auto;
   }
 
-  .pf-revelar {
-    opacity: 1;
-    translate: none;
-    transition: none;
-  }
-
-  .pf-entrada,
-  .pf-aurora,
-  .pf-letreiro,
-  .pf-cursor {
+  .pf-surgir {
     animation: none;
-  }
-
-  .pf-inclinar {
-    transform: none;
-    transition: none;
   }
 }

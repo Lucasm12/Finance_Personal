@@ -2,12 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowRightIcon, MenuIcon, XIcon } from 'lucide-react'
 
 import { LogoAnimado } from '@/components/login/LogoAnimado'
-import { BotaoSistema, useSecaoAtiva } from '@/components/portfolio/Comum'
+import { FOCO, useSecaoAtiva } from '@/components/portfolio/Comum'
+import { CASOS_PUBLICADOS } from '@/lib/portfolio'
 import { cn } from '@/lib/utils'
 
+/**
+ * Links das seções, na ordem da página. "Projetos" só aparece quando há caso publicado.
+ * O acesso ao sistema (login) não fica aqui: é de uso pessoal e está no rodapé.
+ */
 export const LINKS_SECOES = [
   { id: 'sobre', rotulo: 'Sobre' },
   { id: 'experiencia', rotulo: 'Experiência' },
+  ...(CASOS_PUBLICADOS.length > 0 ? [{ id: 'projetos', rotulo: 'Projetos' }] : []),
   { id: 'habilidades', rotulo: 'Habilidades' },
   { id: 'formacao', rotulo: 'Formação' },
   { id: 'contato', rotulo: 'Contato' },
@@ -15,7 +21,7 @@ export const LINKS_SECOES = [
 
 const IDS_OBSERVADOS = ['inicio', ...LINKS_SECOES.map((l) => l.id)]
 
-/** Barra fixa: marca, links das seções, progresso da leitura e o botão "Acessar sistema". */
+/** Barra fixa: marca, links das seções e progresso da leitura. */
 export function Navegacao() {
   const [rolou, setRolou] = useState(false)
   const [aberto, setAberto] = useState(false)
@@ -61,10 +67,8 @@ export function Navegacao() {
   return (
     <header
       className={cn(
-        'fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color] duration-300',
-        rolou || aberto
-          ? 'border-white/[0.06] bg-[#06080a]/80 backdrop-blur-xl'
-          : 'border-transparent bg-transparent',
+        'fixed inset-x-0 top-0 z-50 border-b transition-colors duration-200',
+        rolou || aberto ? 'border-white/[0.08] bg-[#06080a]/90 backdrop-blur-md' : 'border-transparent bg-transparent',
       )}
     >
       <div
@@ -77,11 +81,11 @@ export function Navegacao() {
         <a
           href="#inicio"
           onClick={() => setAberto(false)}
-          className="-ml-1 flex items-center gap-2.5 rounded-lg p-1 focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:outline-none"
+          className={cn('-ml-1 flex items-center gap-2.5 rounded-lg p-1', FOCO)}
           aria-label="Lucas Marques, voltar ao início"
         >
           <LogoAnimado className="size-8" />
-          <span className="pf-mono hidden text-sm text-white/85 min-[380px]:inline">
+          <span className="pf-mono text-sm text-white/90">
             lucas<span className="text-emerald-400">.</span>marques
           </span>
         </a>
@@ -95,11 +99,12 @@ export function Navegacao() {
                   href={`#${link.id}`}
                   aria-current={atual ? 'location' : undefined}
                   className={cn(
-                    'relative isolate rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:outline-none',
-                    atual ? 'text-white' : 'text-white/60 hover:text-white',
+                    'relative isolate rounded-full px-3 py-1.5 text-sm transition-colors',
+                    atual ? 'text-white' : 'text-white/70 hover:text-white',
+                    FOCO,
                   )}
                 >
-                  {atual && <span aria-hidden className="absolute inset-0 -z-10 rounded-full bg-white/[0.08]" />}
+                  {atual && <span aria-hidden className="absolute inset-0 -z-10 rounded-full bg-white/[0.09]" />}
                   {link.rotulo}
                 </a>
               </li>
@@ -107,23 +112,22 @@ export function Navegacao() {
           })}
         </ul>
 
-        <div className="ml-auto flex items-center gap-2 lg:ml-3">
-          <BotaoSistema className="hidden sm:inline-flex" />
-          <BotaoSistema compacto className="sm:hidden" />
-          <button
-            type="button"
-            onClick={() => setAberto((v) => !v)}
-            aria-expanded={aberto}
-            aria-controls="menu-portfolio"
-            aria-label={aberto ? 'Fechar menu' : 'Abrir menu'}
-            className="flex size-10 items-center justify-center rounded-full border border-white/10 text-white/80 transition hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:outline-none lg:hidden"
-          >
-            {aberto ? <XIcon className="size-4" /> : <MenuIcon className="size-4" />}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setAberto((v) => !v)}
+          aria-expanded={aberto}
+          aria-controls="menu-portfolio"
+          aria-label={aberto ? 'Fechar menu' : 'Abrir menu'}
+          className={cn(
+            'ml-auto flex size-11 items-center justify-center rounded-full border border-white/15 text-white/85 transition-colors hover:bg-white/5 lg:hidden',
+            FOCO,
+          )}
+        >
+          {aberto ? <XIcon aria-hidden className="size-4" /> : <MenuIcon aria-hidden className="size-4" />}
+        </button>
       </nav>
 
-      <div id="menu-portfolio" hidden={!aberto} className="border-t border-white/[0.06] lg:hidden">
+      <div id="menu-portfolio" hidden={!aberto} className="border-t border-white/[0.08] lg:hidden">
         <ul className="mx-auto grid max-w-6xl gap-1 px-4 py-3 sm:px-6">
           {LINKS_SECOES.map((link, i) => (
             <li key={link.id}>
@@ -132,15 +136,18 @@ export function Navegacao() {
                 onClick={() => setAberto(false)}
                 aria-current={ativa === link.id ? 'location' : undefined}
                 className={cn(
-                  'flex items-center justify-between rounded-xl px-3 py-3 text-base transition-colors hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none',
-                  ativa === link.id ? 'text-white' : 'text-white/75',
+                  'flex items-center justify-between rounded-xl px-3 py-3 text-base transition-colors hover:bg-white/5',
+                  ativa === link.id ? 'text-white' : 'text-white/80',
+                  FOCO,
                 )}
               >
                 <span className="flex items-center gap-4">
-                  <span className="pf-mono text-xs text-emerald-400/80">{String(i + 1).padStart(2, '0')}</span>
+                  <span aria-hidden className="pf-mono text-xs text-emerald-300">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
                   {link.rotulo}
                 </span>
-                <ArrowRightIcon className="size-4 text-white/35" />
+                <ArrowRightIcon aria-hidden className="size-4 text-white/40" />
               </a>
             </li>
           ))}

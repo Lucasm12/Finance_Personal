@@ -1,12 +1,10 @@
 /**
- * Conteúdo do portfólio (página inicial pública), extraído do currículo.
- * Para atualizar textos, experiências ou contatos, edite só este arquivo.
+ * Conteúdo do portfólio (página inicial pública), extraído do currículo e do repositório.
+ * Para atualizar textos, experiências, casos ou contatos, edite só este arquivo.
+ *
+ * Regra de conteúdo: nada aqui pode ser inventado. Números mantêm o "~" do original e aparecem
+ * dentro da frase de origem (com o contexto de contribuição), nunca soltos como destaque.
  */
-
-export interface Resultado {
-  valor: string
-  rotulo: string
-}
 
 export interface Experiencia {
   cargo: string
@@ -16,7 +14,6 @@ export interface Experiencia {
   setor?: string
   atual?: boolean
   atividades: string[]
-  resultados?: Resultado[]
   tecnologias: string[]
 }
 
@@ -37,19 +34,6 @@ export interface GrupoHabilidade {
   itens: string[]
 }
 
-export interface Projeto {
-  id: string
-  tipo: string
-  titulo: string
-  /** empresa ou contexto */
-  origem?: string
-  descricao: string
-  resultados?: string[]
-  tags: string[]
-  /** título original (publicações em inglês) */
-  idiomaOriginal?: 'en'
-}
-
 export interface Formacao {
   nivel: string
   curso: string
@@ -66,7 +50,35 @@ export interface Publicacao {
   /** título original, em inglês */
   titulo: string
   descricao: string
-  tags: string[]
+  /** preencher só com dados verificáveis */
+  ano?: string
+  veiculo?: string
+  link?: string
+}
+
+export interface LinkEvidencia {
+  rotulo: string
+  href: string
+}
+
+/** Caso prático de QA. Só é publicado quando todos os campos obrigatórios estão preenchidos (veja casoPublicavel). */
+export interface Caso {
+  id: string
+  titulo: string
+  /** ex.: "Projeto próprio · Segurança e testes" */
+  tipo: string
+  periodo: string
+  contexto: string
+  problema: string
+  riscos: string[]
+  participacao: string
+  abordagem: string[]
+  ferramentas: string[]
+  resultados: string[]
+  /** o que ficou fora do escopo; opcional, mas recomendado */
+  limites?: string[]
+  /** links públicos para conferir (repositório, relatório, demonstração) */
+  evidencias: LinkEvidencia[]
 }
 
 export const PERFIL = {
@@ -81,49 +93,45 @@ export const PERFIL = {
   githubRotulo: '@Lucasm12',
   instagram: 'https://www.instagram.com/llucas_marquess/',
   instagramRotulo: '@llucas_marquess',
-  site: 'https://lucasmarques.dev.br',
-  /** Frase de impacto do topo; o trecho em destaque aparece mais claro. */
+  site: 'https://www.lucasmarquesdev.com.br',
+  /** Especialidade, em destaque no topo; o trecho final aparece em verde. */
   chamada: 'Engenharia de qualidade e automação de testes para',
   chamadaDestaque: 'sistemas críticos',
   resumoCurto:
-    'Mais de 4 anos garantindo a qualidade de aplicações web, mobile e APIs nos setores de saúde e financeiro, com automação em Cypress integrada a pipelines de CI/CD. Professor universitário e doutorando em Ciência da Computação pela UFPI.',
+    'Mais de 4 anos em QA de aplicações web, mobile e APIs nos setores de saúde e financeiro, com foco em automação de testes integrada ao CI/CD.',
+  /** Diferenciais complementares, abaixo do resumo. */
+  diferenciais: ['Professor de Teste e Qualidade de Software', 'Doutorando em Ciência da Computação (UFPI)'],
+  /**
+   * Caminho do currículo em PDF dentro de public/ (ex.: '/curriculo-lucas-marques.pdf').
+   * Fica null até existir um arquivo atualizado: sem arquivo, o botão "Baixar currículo" não aparece.
+   */
+  curriculo: null as string | null,
 }
 
-/** Números do currículo (os aproximados mantêm o "~" do original). */
-export const NUMEROS: { prefixo?: string; valor: number; sufixo?: string; rotulo: string }[] = [
-  { valor: 4, sufixo: '+', rotulo: 'anos de experiência em QA nos setores de saúde e financeiro' },
-  { prefixo: '~', valor: 60, sufixo: '%', rotulo: 'de aumento na cobertura de testes automatizados' },
-  { prefixo: 'até ', valor: 40, sufixo: '%', rotulo: 'de redução no tempo de validação em CI/CD' },
-  { prefixo: '~', valor: 35, sufixo: '%', rotulo: 'de redução nas falhas em produção' },
-]
-
+/** "Sobre": a abordagem de trabalho (o posicionamento fica na abertura; as contribuições, nas experiências). */
 export const SOBRE = {
-  paragrafos: [
-    'Sou Engenheiro de QA com mais de 4 anos de experiência em testes manuais e automatizados de aplicações web, mobile e APIs, atuando em sistemas críticos dos setores de saúde e financeiro.',
-    'Meu foco é automação com Cypress integrada a pipelines de CI/CD: ampliar a cobertura de testes, antecipar falhas e garantir entregas estáveis em produção. Também faço testes de API, validação de dados com SQL e BDD, sempre lado a lado com desenvolvedores e POs na definição dos critérios de qualidade.',
-    'Sou mestre em Engenharia Elétrica (Deep Learning), doutorando em Ciência da Computação (Machine Learning) pela UFPI e professor universitário de Teste e Qualidade de Software, unindo prática de mercado e base acadêmica.',
-    'Antes do QA, atuei de 2016 a 2021 com infraestrutura e suporte de TI: redes, servidores, backup e rotinas automatizadas em Oracle SQL.',
-  ],
-  caracteristicas: [
+  introducao:
+    'Trabalho lado a lado com desenvolvedores e POs na definição dos critérios de qualidade, uso análise de risco para priorizar os fluxos críticos e automatizo testes para antecipar falhas e manter as entregas estáveis em produção.',
+  pilares: [
     {
       id: 'requisito',
       titulo: 'Qualidade desde o requisito',
-      texto: 'Critérios de aceite e cenários BDD (Gherkin) definidos junto com POs e desenvolvedores.',
+      texto: 'Critérios de aceite e cenários BDD (Gherkin) escritos junto com POs e desenvolvedores.',
+    },
+    {
+      id: 'risco',
+      titulo: 'Foco nos fluxos críticos',
+      texto: 'Testes funcionais, exploratórios e regressivos em autenticação, pagamentos, estornos e conciliação.',
     },
     {
       id: 'pipeline',
       titulo: 'Automação no pipeline',
-      texto: 'Testes E2E e de API rodando no CI/CD para encontrar a falha antes da produção.',
+      texto: 'Testes E2E e de API integrados aos pipelines de CI/CD para antecipar falhas.',
     },
     {
-      id: 'criticos',
-      titulo: 'Sistemas críticos',
-      texto: 'Saúde e meios de pagamento: Pix, cartão, boleto, estornos e conciliação financeira.',
-    },
-    {
-      id: 'academia',
-      titulo: 'Ensino e pesquisa',
-      texto: 'Professor de Teste e Qualidade de Software e pesquisador em Machine Learning e Visão Computacional.',
+      id: 'dados',
+      titulo: 'APIs, contratos e dados',
+      texto: 'Contratos e regras de negócio em APIs REST e SOAP, integração entre serviços e dados conferidos com SQL.',
     },
   ],
 } as const
@@ -137,17 +145,11 @@ export const EXPERIENCIAS_QA: Experiencia[] = [
     setor: 'Saúde',
     atual: true,
     atividades: [
-      'Criação e manutenção de testes automatizados com Cypress, ampliando a cobertura em ~60%.',
-      'Monitoramento via Cypress Dashboard, reduzindo falhas críticas em produção em ~30%.',
-      'Integração dos testes em pipelines CI/CD com CircleCI, reduzindo o tempo de validação em até 40% e aumentando a eficiência do time em ~25%.',
+      'Criação e manutenção de testes automatizados com Cypress, contribuindo para ampliar a cobertura de testes em ~60%.',
+      'Monitoramento da suíte no Cypress Dashboard, contribuindo para reduzir as falhas críticas em produção em ~30%.',
+      'Integração dos testes aos pipelines de CI/CD com CircleCI, contribuindo para reduzir o tempo de validação em até 40% e aumentar a eficiência do time em ~25%.',
       'Testes de APIs REST e SOAP, validação de contratos e regras de negócio, e testes de integração entre serviços.',
       'Validação de dados com queries SQL em Oracle e atuação na sustentação de sistemas em produção.',
-    ],
-    resultados: [
-      { valor: '~60%', rotulo: 'cobertura ampliada' },
-      { valor: '~30%', rotulo: 'menos falhas críticas' },
-      { valor: 'até 40%', rotulo: 'menos tempo de validação' },
-      { valor: '~25%', rotulo: 'mais eficiência do time' },
     ],
     tecnologias: ['Cypress', 'Cypress Dashboard', 'CircleCI', 'REST', 'SOAP', 'Oracle SQL'],
   },
@@ -171,13 +173,9 @@ export const EXPERIENCIAS_QA: Experiencia[] = [
     local: 'Presidente Prudente, SP',
     setor: 'Fintech',
     atividades: [
-      'Automação com Selenium, Cypress e Postman, aumentando a cobertura de testes em ~65%.',
+      'Automação de testes com Selenium, Cypress e Postman, contribuindo para aumentar a cobertura de testes em ~65%.',
       'Gestão de bugs que contribuiu para reduzir as falhas em produção em ~35%.',
       'Validação de APIs de pagamentos, crédito e serviços bancários, e testes de performance e carga.',
-    ],
-    resultados: [
-      { valor: '~65%', rotulo: 'mais cobertura de testes' },
-      { valor: '~35%', rotulo: 'menos falhas em produção' },
     ],
     tecnologias: ['Selenium', 'Cypress', 'Postman', 'Performance', 'Carga'],
   },
@@ -255,19 +253,19 @@ export const HABILIDADES: GrupoHabilidade[] = [
   {
     id: 'automacao',
     titulo: 'Automação',
-    descricao: 'Testes E2E de aplicações web e mobile, do cenário à execução no pipeline.',
+    descricao: 'Testes E2E de aplicações web e mobile.',
     itens: ['Cypress', 'Selenium', 'Appium', 'Robot Framework', 'CodeceptJS'],
   },
   {
     id: 'apis',
     titulo: 'APIs e performance',
-    descricao: 'Contratos, regras de negócio, integração entre serviços, performance e carga.',
+    descricao: 'Contratos, regras de negócio, performance e carga.',
     itens: ['Postman', 'Newman', 'Insomnia', 'REST', 'SOAP', 'Testes de contrato', 'K6'],
   },
   {
     id: 'cicd',
     titulo: 'CI/CD e infraestrutura',
-    descricao: 'Suítes integradas à entrega contínua, em ambientes conteinerizados e na nuvem.',
+    descricao: 'Testes na entrega contínua, em contêineres e na nuvem.',
     itens: ['CircleCI', 'GitHub', 'Git', 'Docker', 'Kubernetes', 'AWS'],
   },
   {
@@ -279,13 +277,13 @@ export const HABILIDADES: GrupoHabilidade[] = [
   {
     id: 'linguagens',
     titulo: 'Linguagens',
-    descricao: 'Para automatizar, pesquisar e ensinar.',
+    descricao: 'Automação, pesquisa e ensino.',
     itens: ['JavaScript', 'Python', 'Java'],
   },
   {
     id: 'metodologias',
     titulo: 'Metodologias',
-    descricao: 'Times ágeis, critérios de aceite claros e testes guiados por risco.',
+    descricao: 'Times ágeis, critérios de aceite e testes guiados por risco.',
     itens: ['Scrum', 'Kanban', 'BDD (Gherkin)', 'TDD', 'Análise de risco'],
   },
   {
@@ -297,10 +295,71 @@ export const HABILIDADES: GrupoHabilidade[] = [
   {
     id: 'ia',
     titulo: 'Pesquisa e IA',
-    descricao: 'Mestrado e doutorado na área.',
+    descricao: 'Linha de pesquisa do mestrado e do doutorado.',
     itens: ['Machine Learning', 'Deep Learning', 'Visão Computacional'],
   },
 ]
+
+const REPOSITORIO = 'https://github.com/Lucasm12/Finance_Personal'
+
+/**
+ * Casos práticos de QA. Fonte do primeiro: SEGURANCA.md e tests/ deste mesmo repositório (público).
+ * Para incluir um caso de empresa, ele precisa de contexto, riscos, abordagem, resultados e evidência pública.
+ */
+export const CASOS: Caso[] = [
+  {
+    id: 'seguranca-plataforma',
+    titulo: 'Auditoria de segurança e suíte de testes de uma aplicação com dados pessoais',
+    tipo: 'Projeto próprio · Segurança e testes',
+    periodo: 'nov/2026',
+    contexto:
+      'Aplicação web (React, Supabase e Vercel) com módulos de finanças, treinos e organização pessoal. Todo o controle de acesso fica no banco, com Row Level Security, e o código é aberto no GitHub.',
+    problema:
+      'Verificar se a aplicação protegia de fato os dados de cada usuário: acesso entre contas, cadastro, recursos que podiam ser abusados e segredos no código publicado.',
+    riscos: [
+      'Cadastro público aberto pela API, mesmo sem tela de cadastro (risco alto)',
+      'Lembrete por e-mail utilizável como canal de spam ou phishing (risco alto)',
+      'Leitura, alteração ou exclusão de dados de outra conta pelo id (IDOR)',
+      'Falta de cabeçalhos de segurança, campos sem limite de tamanho, injeção de fórmula em CSV e zip bomb',
+    ],
+    participacao: 'Projeto próprio, do qual sou autor e mantenedor.',
+    abordagem: [
+      'Revisão da arquitetura e das permissões de cada camada: frontend, banco, função serverless e integrações',
+      'Classificação dos achados por risco (alto, médio e baixo), com correção e teste para cada um',
+      'Testes de banco que aplicam todas as migrações em um Postgres real em memória (PGlite): RLS, IDOR, chaves estrangeiras, SQL injection e limites',
+      'Testes de configuração e frontend: CSP e cabeçalhos, segredos no bundle, injeção em CSV e arquivos maliciosos',
+      'Testes da função serverless com a API externa simulada: 401, 404, 429, erros 5xx e tempo limite',
+    ],
+    ferramentas: ['Vitest', 'PGlite (Postgres)', 'TypeScript', 'Supabase (RLS)', 'npm audit'],
+    resultados: [
+      '13 achados documentados (2 de risco alto): 11 corrigidos, 1 mitigado e 1 dependente de ação externa (revogação de credenciais)',
+      '62 testes de segurança passando e npm audit sem vulnerabilidades na conclusão da auditoria (01/11/2026)',
+    ],
+    limites: [
+      'Migrações validadas em banco local (PGlite), não no projeto Supabase de produção',
+      'Sem varredura dinâmica (OWASP ZAP) nem análise estática (Semgrep), recomendadas no relatório',
+    ],
+    evidencias: [
+      { rotulo: 'Relatório técnico de segurança', href: `${REPOSITORIO}/blob/main/SEGURANCA.md` },
+      { rotulo: 'Testes de segurança do banco', href: `${REPOSITORIO}/blob/main/tests/banco/seguranca.test.ts` },
+      { rotulo: 'Testes de frontend e configuração', href: `${REPOSITORIO}/blob/main/tests/frontend/seguranca.test.ts` },
+      { rotulo: 'Repositório completo', href: REPOSITORIO },
+    ],
+  },
+]
+
+/** Um caso só vai para a página com todos os campos obrigatórios e ao menos uma evidência https. */
+export function casoPublicavel(caso: Caso): boolean {
+  const textos = [caso.titulo, caso.tipo, caso.periodo, caso.contexto, caso.problema, caso.participacao]
+  const listas = [caso.riscos, caso.abordagem, caso.ferramentas, caso.resultados, caso.evidencias]
+  return (
+    textos.every((t) => t.trim().length > 0) &&
+    listas.every((l) => l.length > 0) &&
+    caso.evidencias.every((e) => e.rotulo.trim().length > 0 && /^https:\/\//.test(e.href))
+  )
+}
+
+export const CASOS_PUBLICADOS = CASOS.filter(casoPublicavel)
 
 export const PUBLICACOES: Publicacao[] = [
   {
@@ -308,55 +367,13 @@ export const PUBLICACOES: Publicacao[] = [
     area: 'Visão computacional',
     titulo: 'Aedes Aegypti egg count in ovitrap straws based on Deep Learning',
     descricao: 'Contagem automatizada de ovos do Aedes aegypti em palhetas de ovitrampas com Deep Learning.',
-    tags: ['Deep Learning', 'Visão Computacional'],
   },
   {
     id: 'inclusao',
     area: 'Extensão universitária',
     titulo: 'Digital Inclusion through Extensionist Actions in the Municipality of Picos-PI',
     descricao: 'Inclusão digital por meio de ações extensionistas no município de Picos (PI).',
-    tags: ['Inclusão digital', 'Extensão universitária'],
   },
-]
-
-/** Seção "Projetos" (fora da página por enquanto; para voltar, inclua <Projetos /> em pages/Portfolio.tsx). */
-export const PROJETOS: Projeto[] = [
-  {
-    id: 'plataforma',
-    tipo: 'Projeto pessoal',
-    titulo: 'Plataforma Lucas Marques Dev',
-    descricao:
-      'Aplicação web própria, organizada em módulos e protegida por login: controle financeiro do mês, treinos de triathlon (com importação de arquivos do relógio e exportação de treinos para o Garmin) e organização pessoal. Regras de acesso no banco (RLS) e testes automatizados de segurança.',
-    tags: ['React', 'TypeScript', 'Vite', 'Tailwind CSS', 'Supabase', 'PostgreSQL', 'Vitest', 'Vercel'],
-  },
-  {
-    id: 'saude',
-    tipo: 'Case · Saúde',
-    titulo: 'Automação E2E em sistemas de saúde',
-    origem: 'Grupo Rede Mais',
-    descricao:
-      'Suíte Cypress integrada ao CI/CD no CircleCI e monitorada pelo Cypress Dashboard, somada a testes de APIs REST e SOAP e à validação de dados em Oracle.',
-    resultados: ['~60% de cobertura ampliada', '~30% menos falhas críticas', 'até 40% menos tempo de validação'],
-    tags: ['Cypress', 'CircleCI', 'REST', 'SOAP', 'Oracle'],
-  },
-  {
-    id: 'pagamentos',
-    tipo: 'Case · Fintech',
-    titulo: 'Qualidade em pagamentos digitais',
-    origem: 'PagPrime Bank e Rubcube',
-    descricao:
-      'Testes funcionais, exploratórios, regressivos e automatizados em fluxos críticos (cadastro, autenticação, Pix, cartão, boleto, estornos e conciliação), além de APIs de pagamentos e crédito, performance e carga.',
-    resultados: ['~65% mais cobertura', '~35% menos falhas em produção'],
-    tags: ['Cypress', 'Selenium', 'Postman', 'BDD (Gherkin)'],
-  },
-  ...PUBLICACOES.map((p) => ({
-    id: p.id,
-    tipo: `Publicação · ${p.area}`,
-    titulo: p.titulo,
-    descricao: p.descricao,
-    tags: p.tags,
-    idiomaOriginal: 'en' as const,
-  })),
 ]
 
 const UFPI = 'Universidade Federal do Piauí (UFPI)'
@@ -375,9 +392,10 @@ export const FORMACAO: Formacao[] = [
   { nivel: 'Bacharelado', curso: 'Sistemas de Informação', instituicao: UFPI, periodo: '2013 – 2017' },
 ]
 
-export const CERTIFICACOES = [
-  { nome: 'Scrum Foundation Professional Certificate (SFPC)', detalhe: 'Fundamentos do Scrum e práticas ágeis' },
-  { nome: 'Cisco CCNA Routing and Switching', detalhe: 'Conceitos Essenciais e Dimensionamento de Redes' },
+/** Como estão no currículo. O item da CCNA precisa de revisão: certificação oficial ou cursos da trilha? */
+export const CERTIFICACOES: { nome: string; detalhe?: string }[] = [
+  { nome: 'Scrum Foundation Professional Certificate (SFPC)' },
+  { nome: 'CCNA Routing and Switching', detalhe: 'Conceitos Essenciais e Dimensionamento de Redes' },
 ]
 
 export const IDIOMAS = [
@@ -385,11 +403,6 @@ export const IDIOMAS = [
   { idioma: 'Inglês', nivel: 'Proficiência profissional limitada' },
   { idioma: 'Espanhol', nivel: 'Proficiência profissional limitada' },
 ]
-
-/** Todas as ferramentas, sem repetição (letreiro da seção de habilidades). */
-export function todasAsFerramentas(grupos: GrupoHabilidade[] = HABILIDADES): string[] {
-  return [...new Set(grupos.filter((g) => g.id !== 'ia').flatMap((g) => g.itens))]
-}
 
 const somenteDigitos = (texto: string) => texto.replace(/\D/g, '')
 

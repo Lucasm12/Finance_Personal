@@ -1,11 +1,11 @@
 # Lucas Marques Dev
 
-A página inicial (`/`) é o **portfólio profissional** público. O botão **Acessar sistema** (no topo e no
-rodapé) leva à tela de login (`/login`), a mesma de sempre.
+A página inicial (`/`) é o **portfólio profissional** público. O sistema é de uso pessoal: o acesso fica num
+link discreto **área restrita** no rodapé, que leva à tela de login (`/login`), a mesma de sempre.
 
 | Endereço | O que é | Login |
 |---|---|---|
-| `/` | Portfólio: sobre, experiência, habilidades, formação (com publicações) e contato | não |
+| `/` | Portfólio: sobre, experiência, casos de QA, habilidades, formação (com publicações) e contato | não |
 | `/login` | Tela de login (Supabase Auth) | — |
 | `/sistema` | Escolha do módulo, primeira tela depois do login | sim |
 | `/financeiro`, `/triathlon`, `/pessoal` | Módulos | sim |
@@ -14,13 +14,22 @@ Depois do login, o usuário escolhe em qual módulo entrar (atalhos: teclas 1, 2
 e dentro de cada módulo pode trocar de módulo tocando no nome dele no topo da tela.
 O app instalado no celular (PWA) abre direto em `/sistema`.
 
-**Textos do portfólio:** ficam todos em [src/lib/portfolio.ts](src/lib/portfolio.ts) (experiências, habilidades,
-projetos, formação e contatos); as seções estão em [src/components/portfolio/](src/components/portfolio/) e a página
-em [src/pages/Portfolio.tsx](src/pages/Portfolio.tsx). A seção **Projetos** está fora da página por enquanto: o
-componente e os dados continuam no código; para voltar, inclua `<Projetos />` em `Portfolio.tsx`, o link em
-`LINKS_SECOES` (Navegacao.tsx) e ajuste a numeração das seções. As fontes (Geist, Geist Mono e Instrument Serif) vêm do npm
-(`@fontsource`) e são servidas pelo próprio site, como a CSP exige. O domínio usado no SEO
-(`index.html`, `public/robots.txt`, `public/sitemap.xml`) é `https://lucasmarques.dev.br`.
+**Textos do portfólio:** ficam todos em [src/lib/portfolio.ts](src/lib/portfolio.ts) (experiências, casos,
+habilidades, formação e contatos); as seções estão em [src/components/portfolio/](src/components/portfolio/) e a
+página em [src/pages/Portfolio.tsx](src/pages/Portfolio.tsx). Regras de conteúdo: nada inventado; números mantêm o
+"~" do currículo e aparecem dentro da frase de origem.
+
+**Casos de QA** (`CASOS` em `portfolio.ts`, cartão em [Casos.tsx](src/components/portfolio/Casos.tsx)): cada caso
+tem contexto, problema, riscos, participação, abordagem, ferramentas, resultados, limites e links de evidência. Só
+vai para a página o caso que passa em `casoPublicavel` (campos obrigatórios e evidência `https`); sem nenhum, a seção
+e o link "Projetos" somem e a ação principal do topo volta a ser "Ver trajetória".
+
+**Currículo em PDF:** coloque o arquivo em `public/` e preencha `PERFIL.curriculo` (ex.: `/curriculo-lucas-marques.pdf`);
+o botão "Baixar currículo" só aparece com o arquivo presente (um teste confere).
+
+As fontes (Geist, Geist Mono e Instrument Serif) vêm do npm (`@fontsource`) e são servidas pelo próprio site, como a
+CSP exige. O domínio usado no SEO (`index.html`, `public/robots.txt`, `public/sitemap.xml` e `PERFIL.site`) é
+`https://www.lucasmarquesdev.com.br` (o endereço sem `www` redireciona para ele).
 
 | Módulo | Endereço | Situação |
 |---|---|---|

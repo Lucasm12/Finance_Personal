@@ -1,45 +1,21 @@
-import { useEffect, useRef, useState, type ComponentProps, type CSSProperties, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import { LockKeyholeIcon, type LucideIcon } from 'lucide-react'
+import { useEffect, useState, type ComponentProps, type ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 
 import { moverLuzCartao } from '@/components/login/FundoTecnologico'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ROTA_LOGIN } from '@/modulos'
 
 /** true quando o sistema pede "reduzir movimento". */
 export function movimentoReduzido() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-/** Fica true (uma única vez) quando o elemento entra na tela. */
-export function useVisivel<T extends Element>() {
-  const ref = useRef<T>(null)
-  const [visivel, setVisivel] = useState(false)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    if (typeof IntersectionObserver === 'undefined') {
-      setVisivel(true)
-      return
-    }
-    const observador = new IntersectionObserver(
-      ([entrada]) => {
-        if (entrada?.isIntersecting) {
-          setVisivel(true)
-          observador.disconnect()
-        }
-      },
-      { rootMargin: '0px 0px -8% 0px' },
-    )
-    observador.observe(el)
-    return () => observador.disconnect()
-  }, [])
-
-  return [ref, visivel] as const
-}
+/**
+ * Contorno de foco visível (teclado) com bom contraste no fundo escuro.
+ * "outline-solid" é necessário: o botão base (shadcn) usa outline-none, que zeraria o estilo do contorno.
+ */
+export const FOCO =
+  'focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-emerald-300'
 
 /** Id da seção que está no meio da tela (para destacar o link no menu). */
 export function useSecaoAtiva(ids: string[]) {
@@ -65,21 +41,6 @@ export function useSecaoAtiva(ids: string[]) {
   return ativa
 }
 
-/** Surge suavemente (subindo) quando entra na tela. */
-export function Revelar({ children, atraso = 0, className }: { children: ReactNode; atraso?: number; className?: string }) {
-  const [ref, visivel] = useVisivel<HTMLDivElement>()
-  return (
-    <div
-      ref={ref}
-      data-visivel={visivel}
-      style={{ '--atraso': `${atraso}ms` } as CSSProperties}
-      className={cn('pf-revelar', className)}
-    >
-      {children}
-    </div>
-  )
-}
-
 /** Seção da página com largura e espaçamento padronizados. */
 export function Secao({
   id,
@@ -93,7 +54,7 @@ export function Secao({
   className?: string
 }) {
   return (
-    <section id={id} aria-labelledby={rotuloId} className={cn('relative py-24 sm:py-32', className)}>
+    <section id={id} aria-labelledby={rotuloId} className={cn('relative py-20 sm:py-28', className)}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">{children}</div>
     </section>
   )
@@ -123,7 +84,7 @@ export function CabecalhoSecao({
   className?: string
 }) {
   return (
-    <Revelar className={cn('max-w-3xl', centralizado && 'mx-auto text-center', className)}>
+    <div className={cn('max-w-3xl', centralizado && 'mx-auto text-center', className)}>
       <p
         className={cn(
           'pf-mono flex items-center gap-3 text-xs tracking-[0.18em] text-emerald-300 uppercase',
@@ -132,39 +93,37 @@ export function CabecalhoSecao({
       >
         <span>{numero}</span>
         <span aria-hidden className="h-px w-10 bg-gradient-to-r from-emerald-400/70 to-transparent" />
-        <span className="text-white/60">{rotulo}</span>
+        <span className="text-white/70">{rotulo}</span>
       </p>
       <h2
         id={id}
-        className="mt-5 text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.06] font-semibold tracking-[-0.035em] text-balance"
+        className="mt-4 text-[clamp(1.9rem,4.8vw,3.1rem)] leading-[1.08] font-semibold tracking-[-0.03em] text-balance"
       >
         {titulo}
       </h2>
       {descricao && (
-        <p className={cn('mt-5 max-w-2xl text-base text-pretty text-white/60 sm:text-lg', centralizado && 'mx-auto')}>
+        <p className={cn('mt-4 max-w-2xl text-base text-pretty text-white/70 sm:text-lg', centralizado && 'mx-auto')}>
           {descricao}
         </p>
       )}
-    </Revelar>
+    </div>
   )
 }
 
 /** Subtítulo dentro de uma seção (ex.: "Docência"). */
 export function Subtitulo({ icone: Icone, children, className }: { icone: LucideIcon; children: ReactNode; className?: string }) {
   return (
-    <Revelar className={className}>
-      <h3 className="flex items-center gap-3 text-sm font-medium text-white/80">
-        <span className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-emerald-300">
-          <Icone className="size-4" />
-        </span>
-        {children}
-        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
-      </h3>
-    </Revelar>
+    <h3 className={cn('flex items-center gap-3 text-sm font-medium text-white/85', className)}>
+      <span className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-emerald-300">
+        <Icone aria-hidden className="size-4" />
+      </span>
+      {children}
+      <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+    </h3>
   )
 }
 
-/** Cartão escuro com luz que acompanha o cursor (a mesma da tela de login). */
+/** Cartão escuro com luz suave que acompanha o cursor (a mesma da tela de login). */
 export function Cartao({
   children,
   className,
@@ -175,7 +134,7 @@ export function Cartao({
     <div
       onPointerMove={moverLuzCartao}
       className={cn(
-        'group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0d10]/85 transition-colors duration-300 hover:border-emerald-400/25',
+        'group relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d10] transition-colors duration-200 hover:border-emerald-400/25',
         destaque && 'pf-borda border-transparent hover:border-transparent',
         className,
       )}
@@ -183,117 +142,65 @@ export function Cartao({
     >
       <div
         aria-hidden
-        className="login-cartao-luz pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        className="login-cartao-luz pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
       />
       <div className="relative h-full">{children}</div>
     </div>
   )
 }
 
-/** Etiqueta pequena (tecnologias, tags). */
+/** Ponto verde estático (marca "atual"/"em andamento"; sem animação para não competir com a leitura). */
+function PontoAtual() {
+  return <span aria-hidden className="inline-flex size-1.5 shrink-0 rounded-full bg-emerald-400" />
+}
+
+/** Etiqueta pequena (tecnologias, tags, situação). */
 export function Chip({ children, atual, className }: { children: ReactNode; atual?: boolean; className?: string }) {
   return (
     <Badge
       variant="outline"
       className={cn(
-        'pf-mono rounded-full px-2.5 py-1 text-[11px] font-normal',
+        'pf-mono rounded-full px-2.5 py-1 text-xs font-normal',
         atual
-          ? 'gap-1.5 border-emerald-400/30 bg-emerald-400/10 text-emerald-200'
-          : 'border-white/10 bg-white/[0.03] text-white/70',
+          ? 'gap-1.5 border-emerald-400/35 bg-emerald-400/10 text-emerald-200'
+          : 'border-white/12 bg-white/[0.03] text-white/80',
         className,
       )}
     >
-      {atual && (
-        <span aria-hidden className="relative flex size-1.5">
-          <span className="absolute inline-flex size-full rounded-full bg-emerald-400 opacity-70 motion-safe:animate-ping" />
-          <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
-        </span>
-      )}
+      {atual && <PontoAtual />}
       {children}
     </Badge>
   )
 }
 
+type IconeMarca = (props: { className?: string }) => ReactNode
+
 /** Ícone quadrado com fundo verde suave. */
-export function IconeQuadro({ icone: Icone, className }: { icone: LucideIcon | typeof IconeLinkedIn; className?: string }) {
+export function IconeQuadro({ icone: Icone, className }: { icone: LucideIcon | IconeMarca; className?: string }) {
   return (
     <span
       className={cn(
-        'flex size-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300 transition-transform duration-300 group-hover:scale-105',
+        'flex size-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300',
         className,
       )}
     >
-      <Icone className="size-[18px]" />
+      <Icone aria-hidden className="size-[18px]" />
     </span>
   )
 }
 
-/** Número que conta de 0 até o valor quando aparece na tela. */
-export function Contador({ valor, sufixo = '' }: { valor: number; sufixo?: string }) {
-  const [ref, visivel] = useVisivel<HTMLSpanElement>()
-  const [atual, setAtual] = useState(() => (movimentoReduzido() ? valor : 0))
-
-  useEffect(() => {
-    if (!visivel || movimentoReduzido()) return
-    let quadro = 0
-    const inicio = performance.now()
-    const duracao = 1400
-    const passo = (agora: number) => {
-      const t = Math.min(1, (agora - inicio) / duracao)
-      setAtual(Math.round(valor * (1 - (1 - t) ** 3)))
-      if (t < 1) quadro = requestAnimationFrame(passo)
-    }
-    quadro = requestAnimationFrame(passo)
-    return () => cancelAnimationFrame(quadro)
-  }, [visivel, valor])
-
-  return (
-    <span ref={ref}>
-      <span aria-hidden className="tabular-nums">
-        {atual}
-        {sufixo}
-      </span>
-      <span className="sr-only">
-        {valor}
-        {sufixo}
-      </span>
-    </span>
-  )
-}
-
-/** Botão destacado que leva à tela de login já existente do sistema. */
-export function BotaoSistema({ className, compacto }: { className?: string; compacto?: boolean }) {
-  return (
-    <Link
-      to={ROTA_LOGIN}
-      className={cn(
-        buttonVariants({ size: 'lg' }),
-        'login-botao relative h-10 overflow-hidden rounded-full bg-emerald-400 font-medium text-emerald-950 shadow-[0_0_0_1px_rgb(52_211_153/0.5),0_10px_30px_-10px_rgb(16_185_129/0.8)] hover:bg-emerald-300 hover:shadow-[0_0_0_1px_rgb(110_231_183/0.7),0_10px_36px_-8px_rgb(16_185_129/0.9)] focus-visible:ring-4 focus-visible:ring-emerald-400/30',
-        className,
-      )}
-    >
-      <span
-        aria-hidden
-        className="login-reflexo absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent"
-      />
-      <LockKeyholeIcon className="relative" />
-      <span className="relative">{compacto ? 'Login' : 'Acessar sistema'}</span>
-    </Link>
-  )
-}
-
-/** Ponto da linha do tempo (Experiência e Formação); pulsa quando é o atual. */
+/** Ponto da linha do tempo (Experiência e Formação). */
 export function Marcador({ atual, className }: { atual?: boolean; className?: string }) {
   return (
     <span
       aria-hidden
       className={cn(
-        'absolute top-8 left-0 flex size-[15px] items-center justify-center rounded-full border border-emerald-400/60 bg-[#06080a]',
+        'absolute top-8 left-0 flex size-[15px] items-center justify-center rounded-full border bg-[#06080a]',
+        atual ? 'border-emerald-300' : 'border-emerald-400/50',
         className,
       )}
     >
-      {atual && <span className="absolute inline-flex size-full rounded-full bg-emerald-400/40 motion-safe:animate-ping" />}
-      <span className="relative size-[5px] rounded-full bg-emerald-400" />
+      <span className="size-[5px] rounded-full bg-emerald-400" />
     </span>
   )
 }

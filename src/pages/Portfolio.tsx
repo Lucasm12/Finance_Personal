@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // Fontes empacotadas e servidas pelo próprio site (a CSP só permite font-src 'self').
 import '@fontsource-variable/geist/index.css'
@@ -7,6 +7,7 @@ import '@fontsource/instrument-serif/400-italic.css'
 import '@/components/portfolio/portfolio.css'
 
 import { FundoAnimado } from '@/components/login/FundoAnimado'
+import { Casos } from '@/components/portfolio/Casos'
 import { Contato } from '@/components/portfolio/Contato'
 import { Experiencia } from '@/components/portfolio/Experiencia'
 import { Formacao } from '@/components/portfolio/Formacao'
@@ -52,32 +53,38 @@ function useAjustesDaPagina() {
   }, [])
 }
 
-/** Fundo fixo: a mesma grade e rede de pontos do login, que esmaecem conforme a página rola. */
+/**
+ * Fundo do topo: a mesma grade e rede de pontos do login, discretas e só enquanto o topo está na tela
+ * (somem ao rolar, para não disputar atenção com o conteúdo, e param de ser desenhadas).
+ */
 function FundoPortfolio() {
   const camadaRef = useRef<HTMLDivElement>(null)
-  const brilhoRef = useRef<HTMLDivElement>(null)
+  const [noTopo, setNoTopo] = useState(true)
 
   useEffect(() => {
     let quadro = 0
     function atualizar() {
       quadro = 0
-      const progresso = Math.min(1, window.scrollY / window.innerHeight)
-      camadaRef.current?.style.setProperty('opacity', String(1 - progresso * 0.6))
+      const progresso = Math.min(1, window.scrollY / (window.innerHeight * 0.8))
+      camadaRef.current?.style.setProperty('opacity', String(0.6 * (1 - progresso)))
     }
     function agendar() {
       if (!quadro) quadro = requestAnimationFrame(atualizar)
     }
-    function moverBrilho(e: PointerEvent) {
-      brilhoRef.current?.style.setProperty('--x', `${e.clientX}px`)
-      brilhoRef.current?.style.setProperty('--y', `${e.clientY}px`)
-    }
     atualizar()
     window.addEventListener('scroll', agendar, { passive: true })
-    window.addEventListener('pointermove', moverBrilho, { passive: true })
+
+    const topo = document.getElementById('inicio')
+    const observador =
+      topo && typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(([entrada]) => setNoTopo(Boolean(entrada?.isIntersecting)))
+        : null
+    if (topo && observador) observador.observe(topo)
+
     return () => {
       cancelAnimationFrame(quadro)
       window.removeEventListener('scroll', agendar)
-      window.removeEventListener('pointermove', moverBrilho)
+      observador?.disconnect()
     }
   }, [])
 
@@ -86,14 +93,13 @@ function FundoPortfolio() {
     <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 h-lvh">
       <div ref={camadaRef} className="absolute inset-0">
         <div className="login-grade absolute inset-0" />
-        <FundoAnimado />
+        {noTopo && <FundoAnimado />}
       </div>
-      <div ref={brilhoRef} className="login-brilho absolute inset-0" />
     </div>
   )
 }
 
-/** Página inicial pública: portfólio profissional. O sistema fica no botão "Acessar sistema" (login). */
+/** Página inicial pública: portfólio profissional. O acesso ao sistema (login) fica no rodapé. */
 export default function Portfolio() {
   useAjustesDaPagina()
 
@@ -113,8 +119,8 @@ export default function Portfolio() {
         <Hero />
         <Sobre />
         <Experiencia />
+        <Casos />
         <Habilidades />
-        {/* <Projetos /> fora por enquanto: o componente e os dados continuam em components/portfolio e lib/portfolio */}
         <Formacao />
         <Contato />
       </main>
