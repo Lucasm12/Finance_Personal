@@ -32,14 +32,16 @@ export function SeletorModalidade<M extends Modalidade = Modalidade>({ value, on
             role="radio"
             aria-checked={ativo}
             onClick={() => onChange(m)}
+            title={info.nome}
             className={cn(
-              'flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-[11px] font-medium transition-colors',
+              'flex min-w-0 flex-col items-center gap-1 rounded-lg border px-0.5 py-2 text-[10px] font-medium tracking-tight transition-colors sm:px-1 sm:text-[11px] sm:tracking-normal',
               ativo ? 'border-transparent text-white' : 'text-muted-foreground hover:bg-accent',
             )}
             style={ativo ? { backgroundColor: cor(info.cor) } : undefined}
           >
-            <Icone className="size-4" />
-            {info.nome}
+            <Icone className="size-4 shrink-0" />
+            {/* em telas de 320 px "Academia" não cabe no botão: corta com "…" em vez de vazar */}
+            <span className="max-w-full truncate">{info.nome}</span>
           </button>
         )
       })}

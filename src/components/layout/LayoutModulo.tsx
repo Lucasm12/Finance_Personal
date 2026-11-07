@@ -67,8 +67,11 @@ export function LayoutModulo({ modulo, links = [], itensMenu, extras }: Props) {
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
           <TrocarModulo atual={modulo} />
 
+          {/* Links no topo só a partir de lg: com 6-7 links (Pessoal, Triathlon) eles não cabiam entre 768 e ~960 px
+              (tablet em pé, celular deitado) e a página inteira rolava para o lado. Abaixo disso fica a barra inferior.
+              min-w-0 + overflow-x-auto: se um dia não couberem, rolam dentro do cabeçalho, sem empurrar a página. */}
           {links.length > 0 && (
-            <nav className="ml-2 hidden items-center gap-1 md:flex" aria-label={modulo.nome}>
+            <nav className="ml-2 hidden min-w-0 items-center gap-1 overflow-x-auto lg:flex" aria-label={modulo.nome}>
               {links.map((link) => (
                 <NavLink
                   key={link.para}
@@ -76,7 +79,7 @@ export function LayoutModulo({ modulo, links = [], itensMenu, extras }: Props) {
                   end={link.exato}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      'flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                       isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground',
                     )
                   }
@@ -88,7 +91,7 @@ export function LayoutModulo({ modulo, links = [], itensMenu, extras }: Props) {
             </nav>
           )}
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Alterar tema">
@@ -140,7 +143,7 @@ export function LayoutModulo({ modulo, links = [], itensMenu, extras }: Props) {
       <main
         className={cn(
           'mx-auto max-w-7xl px-4 pt-4 sm:px-6 sm:pt-6',
-          navInferior ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-10' : 'pb-10',
+          navInferior ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-10' : 'pb-10',
         )}
       >
         <Suspense fallback={<Carregando />}>
@@ -151,7 +154,7 @@ export function LayoutModulo({ modulo, links = [], itensMenu, extras }: Props) {
       {navInferior && (
         <nav
           aria-label={modulo.nome}
-          className="bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+          className="bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
         >
           <div className="grid" style={{ gridTemplateColumns: `repeat(${links.length}, minmax(0, 1fr))` }}>
             {links.map((link) => (

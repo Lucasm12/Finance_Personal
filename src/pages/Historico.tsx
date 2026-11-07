@@ -72,7 +72,7 @@ function Bloco({ rotulo, children, detalhe }: { rotulo: string; children: React.
   return (
     <Card className="gap-1 px-4 py-4 sm:px-5">
       <div className="text-muted-foreground text-sm">{rotulo}</div>
-      <div className="text-xl font-semibold tracking-tight sm:text-2xl">{children}</div>
+      <div className="text-[clamp(1rem,5vw,1.25rem)] font-semibold tracking-tight whitespace-nowrap tabular-nums sm:text-2xl">{children}</div>
       {detalhe && <div className="text-xs">{detalhe}</div>}
     </Card>
   )
@@ -279,7 +279,9 @@ export default function Historico() {
                 {categoriasAtual.length === 0 ? (
                   <p className="text-muted-foreground py-12 text-center text-sm">Sem lançamentos neste mês.</p>
                 ) : (
-                  <div className="grid items-center gap-4 sm:grid-cols-[minmax(0,13rem)_1fr]">
+                  <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
+                    {/* minmax(0, …): a coluna pode encolher e o nome longo da categoria é cortado com "…",
+                        em vez de esticar o cartão e empurrar a porcentagem para fora da tela */}
                     <div className="relative mx-auto aspect-square w-full max-w-52">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -318,12 +320,12 @@ export default function Historico() {
                       </div>
                     </div>
 
-                    <ul className="grid gap-1.5 text-sm">
+                    <ul className="grid grid-cols-1 gap-1.5 text-sm">
                       {categoriasAtual.map((t) => (
                         <li key={t.categoria_id} className="flex items-center gap-2">
                           <span className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: cor(t.cor) }} aria-hidden />
                           <span className="min-w-0 flex-1 truncate">{t.categoria}</span>
-                          <span className="tabular-nums">{formatarMoeda(t.total)}</span>
+                          <span className="shrink-0 whitespace-nowrap tabular-nums">{formatarMoeda(t.total)}</span>
                           <span className="text-muted-foreground w-14 text-right text-xs tabular-nums">
                             {formatarPercentual(totalAtual ? t.total / totalAtual : 0)}
                           </span>

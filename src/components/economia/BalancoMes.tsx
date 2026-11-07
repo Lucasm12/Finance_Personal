@@ -36,7 +36,7 @@ function Bloco({
         <Icone className={cn('size-4', classeIcone)} />
         {rotulo}
       </div>
-      <div className={cn('text-xl font-semibold tracking-tight sm:text-2xl', classeValor)}>{valor}</div>
+      <div className={cn('text-[clamp(1rem,5vw,1.25rem)] font-semibold tracking-tight whitespace-nowrap tabular-nums sm:text-2xl', classeValor)}>{valor}</div>
       <div className="text-muted-foreground text-xs">{detalhe}</div>
     </Card>
   )

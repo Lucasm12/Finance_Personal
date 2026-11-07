@@ -17,7 +17,7 @@ import type { Frequencia, Habito, ResumoHabito } from '@/types/pessoal'
 /** Sequência atual (dias previstos seguidos). */
 export function Sequencia({ dias, className }: { dias: number; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-0.5 text-xs font-medium tabular-nums', dias === 0 && 'text-muted-foreground', className)}>
+    <span className={cn('inline-flex shrink-0 items-center gap-0.5 text-xs font-medium tabular-nums', dias === 0 && 'text-muted-foreground', className)}>
       <FlameIcon className={cn('size-3.5', dias > 0 ? 'text-orange-500' : 'text-muted-foreground')} aria-hidden />
       {dias}
       <span className="sr-only"> {dias === 1 ? 'dia seguido' : 'dias seguidos'}</span>
@@ -35,7 +35,8 @@ export function HabitosHoje({ habitos, resumo }: { habitos: Habito[]; resumo: Re
 
   if (!doDia.length) return <p className="text-muted-foreground text-sm">Nenhum hábito previsto para hoje.</p>
   return (
-    <ul className="grid gap-1">
+    // grid-cols-1: o nome do hábito é cortado com "…" em vez de empurrar a sequência para fora da tela
+    <ul className="grid grid-cols-1 gap-1">
       {doDia.map((h) => {
         const r = porId.get(h.id)!
         return (

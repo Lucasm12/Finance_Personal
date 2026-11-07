@@ -83,10 +83,11 @@ export default function Metas() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4">
-                <ul className="grid gap-1.5 text-sm">
+                <ul className="grid grid-cols-1 gap-1.5 text-sm">
                   {atrasadas.map((m) => (
                     <li key={m.id} className="flex flex-wrap items-center justify-between gap-x-3">
-                      <span className="flex min-w-0 items-center gap-2">
+                      {/* max-w-full: o título é cortado com "…" e a área não é empurrada para fora do cartão */}
+                      <span className="flex max-w-full min-w-0 items-center gap-2">
                         <span className="truncate font-medium">{m.titulo}</span>
                         <SeloArea area={areaDe(m.area_id)} />
                       </span>
@@ -100,7 +101,7 @@ export default function Metas() {
             </Card>
           )}
 
-          <section className="grid gap-2" aria-label="Progresso por área">
+          <section className="grid grid-cols-1 gap-2" aria-label="Progresso por área">
             <h2 className="text-muted-foreground text-sm font-medium">Progresso por área</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {(visao.data ?? [])
@@ -108,11 +109,13 @@ export default function Metas() {
                 .map((v) => {
                   const area = areaDe(v.area_id)
                   return (
-                    <div key={v.area_id} className="bg-card grid gap-2 rounded-xl border p-3">
+                    <div key={v.area_id} className="bg-card grid grid-cols-1 gap-2 rounded-xl border p-3">
                       <div className="flex items-center gap-2">
                         <IconeArea area={area} className="size-8" />
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{area?.nome}</span>
-                        <span className="text-lg font-semibold tabular-nums">{porcento(v.progresso)}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium" title={area?.nome}>
+                          {area?.nome}
+                        </span>
+                        <span className="shrink-0 text-lg font-semibold tabular-nums">{porcento(v.progresso)}</span>
                       </div>
                       <BarraProgresso valor={v.progresso} esperado={v.esperado} cor={area?.cor} rotulo={`Progresso médio em ${area?.nome}`} />
                       <p className="text-muted-foreground text-xs">

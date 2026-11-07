@@ -46,20 +46,20 @@ function CardTarefas({ hoje }: { hoje: string }) {
         </CardTitle>
         <VerTodos para={ROTAS_PESSOAL.tarefas}>Ver todas</VerTodos>
       </CardHeader>
-      <CardContent className="grid gap-3">
+      <CardContent className="grid grid-cols-1 gap-3">
         {tarefas.isPending ? (
           <Skeleton className="h-24" />
         ) : tarefas.error ? (
           <p className="text-destructive text-sm">{mensagemErro(tarefas.error)}</p>
         ) : (
           <>
-            <section className="grid gap-2" aria-label="Prioridades do dia">
+            <section className="grid grid-cols-1 gap-2" aria-label="Prioridades do dia">
               <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
                 <StarIcon className="size-3.5 fill-amber-400 text-amber-500" aria-hidden />
                 3 prioridades do dia
               </h3>
               {foco.length ? (
-                <ul className="grid gap-2">
+                <ul className="grid grid-cols-1 gap-2">
                   {foco.map((t) => (
                     <ItemTarefa key={t.id} tarefa={t} />
                   ))}
@@ -69,7 +69,7 @@ function CardTarefas({ hoje }: { hoje: string }) {
               )}
             </section>
             {outras.length > 0 && (
-              <ul className="grid gap-2">
+              <ul className="grid grid-cols-1 gap-2">
                 {outras.map((t) => (
                   <ItemTarefa key={t.id} tarefa={t} />
                 ))}
@@ -207,12 +207,13 @@ export default function MeuDia() {
         </Link>
       )}
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
-        <div className="grid gap-4">
+      {/* grid-cols-1 (= minmax(0, 1fr)): os cartões acompanham a largura da tela em vez de crescer até o texto mais longo */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4">
           <CardLeituraHoje />
           <CardHabitos />
         </div>
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <CardTarefas hoje={hoje} />
           <CardMetas ano={ano} />
           <CardHumor hoje={hoje} />

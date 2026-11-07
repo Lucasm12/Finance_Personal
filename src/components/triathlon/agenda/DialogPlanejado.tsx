@@ -204,7 +204,7 @@ function FormPlanejado({ treino, dataInicial, onFechar }: FormProps) {
   const sigla = UNIDADE[modalidade].sigla
 
   return (
-    <form onSubmit={enviar} className="grid gap-4" noValidate>
+    <form onSubmit={enviar} className="grid grid-cols-1 gap-4" noValidate>
       <DialogHeader>
         <DialogTitle>{treino ? 'Editar treino planejado' : 'Planejar treino'}</DialogTitle>
         <DialogDescription>

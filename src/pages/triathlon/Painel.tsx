@@ -266,11 +266,16 @@ export default function PainelTriathlon() {
                     <ChevronRightIcon />
                   </Link>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                {/* No celular, uma linha por indicador (nome e dica à esquerda, valor à direita):
+                    em 3 colunas, "Condicionamento" não cabia e invadia o bloco ao lado. */}
+                <div className="grid gap-2 sm:grid-cols-3">
                   {blocos.map((b) => (
-                    <div key={b.rotulo} className="bg-muted/40 rounded-lg px-3 py-2">
+                    <div
+                      key={b.rotulo}
+                      className="bg-muted/40 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-lg px-3 py-2 sm:block"
+                    >
                       <div className="text-muted-foreground text-xs">{b.rotulo}</div>
-                      <div className="text-lg font-semibold tabular-nums">{Math.round(b.valor)}</div>
+                      <div className="col-start-2 row-span-2 row-start-1 text-lg font-semibold tabular-nums">{Math.round(b.valor)}</div>
                       <div className="text-muted-foreground text-[11px] leading-tight">{b.dica}</div>
                     </div>
                   ))}

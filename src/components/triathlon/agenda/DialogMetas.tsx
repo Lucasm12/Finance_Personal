@@ -69,7 +69,7 @@ function FormMetas({ semana, metas, onFechar }: { semana: string; metas: MetaSem
   }
 
   return (
-    <form onSubmit={enviar} className="grid gap-4" noValidate>
+    <form onSubmit={enviar} className="grid grid-cols-1 gap-4" noValidate>
       <DialogHeader>
         <DialogTitle>Metas da semana {numeroSemana(semana)}</DialogTitle>
         <DialogDescription>
@@ -77,11 +77,13 @@ function FormMetas({ semana, metas, onFechar }: { semana: string; metas: MetaSem
         </DialogDescription>
       </DialogHeader>
 
-      <div className="grid gap-3">
+      {/* No celular (diálogo com ~240 px úteis) campo e unidade ficam mais estreitos: lado a lado com
+          ícone e nome, os 96 + 56 px empurravam "sessões" e o botão Salvar para fora da janela */}
+      <div className="grid grid-cols-1 gap-3">
         {MODALIDADES_AGENDA.map((m) => (
-          <div key={m} className="flex items-center gap-3">
-            <IconeModalidade modalidade={m} className="size-8" />
-            <Label htmlFor={`meta-${m}`} className="flex-1 text-sm">
+          <div key={m} className="flex items-center gap-2 sm:gap-3">
+            <IconeModalidade modalidade={m} className="size-7 sm:size-8" />
+            <Label htmlFor={`meta-${m}`} className="min-w-0 flex-1 truncate text-sm">
               {MODALIDADES[m].nome}
             </Label>
             <Input
@@ -90,9 +92,9 @@ function FormMetas({ semana, metas, onFechar }: { semana: string; metas: MetaSem
               placeholder={UNIDADE[m].exemplo}
               value={valores[m]}
               onChange={(e) => setValores({ ...valores, [m]: e.target.value })}
-              className="w-24 text-right"
+              className="w-[4.5rem] shrink-0 text-right sm:w-24"
             />
-            <span className="text-muted-foreground w-14 text-sm">{UNIDADE[m].sigla}</span>
+            <span className="text-muted-foreground w-12 shrink-0 text-xs sm:w-14 sm:text-sm">{UNIDADE[m].sigla}</span>
           </div>
         ))}
       </div>

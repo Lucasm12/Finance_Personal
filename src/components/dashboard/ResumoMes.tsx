@@ -32,7 +32,7 @@ function Bloco({
         <Icone className={`size-4 ${classeIcone}`} />
         {rotulo}
       </div>
-      <div className="text-xl font-semibold tracking-tight sm:text-2xl">{valor}</div>
+      <div className="text-[clamp(1rem,5vw,1.25rem)] font-semibold tracking-tight whitespace-nowrap tabular-nums sm:text-2xl">{valor}</div>
       {detalhe && <div className="text-muted-foreground text-xs">{detalhe}</div>}
     </Card>
   )
@@ -66,7 +66,7 @@ export function ResumoMes({ total, pago, pendente, quantidade, quantidadePaga, f
       />
       <Card className="gap-2 px-4 py-4 sm:px-5">
         <div className="text-muted-foreground text-sm">Pago do mês</div>
-        <div className="text-xl font-semibold tracking-tight sm:text-2xl">{formatarPercentual(fracao)}</div>
+        <div className="text-[clamp(1rem,5vw,1.25rem)] font-semibold tracking-tight whitespace-nowrap tabular-nums sm:text-2xl">{formatarPercentual(fracao)}</div>
         <Progress value={fracao * 100} aria-label="Percentual pago" />
       </Card>
     </section>

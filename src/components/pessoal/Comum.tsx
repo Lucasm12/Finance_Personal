@@ -26,7 +26,8 @@ export function SeloArea({ area, className }: { area: AreaVida | undefined; clas
   if (!area) return null
   const Icone = iconeArea(area.icone)
   return (
-    <span className={cn('text-muted-foreground inline-flex min-w-0 items-center gap-1 text-xs', className)}>
+    // max-w-full: sem limite, o inline-flex crescia até o nome inteiro e o "…" nunca aparecia
+    <span className={cn('text-muted-foreground inline-flex max-w-full min-w-0 items-center gap-1 text-xs', className)}>
       <Icone className="size-3.5 shrink-0" style={{ color: corNoTema(area.cor, escuro) }} aria-hidden />
       <span className="truncate">{area.nome}</span>
     </span>

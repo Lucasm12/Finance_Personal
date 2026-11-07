@@ -87,7 +87,7 @@ function AbaDiario() {
   const limite = somarDias(hoje, -90)
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[1fr_20rem]">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <Card className="gap-4">
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <Button variant="outline" size="icon" aria-label="Dia anterior" disabled={data <= limite} onClick={() => setData(somarDias(data, -1))}>
@@ -111,7 +111,7 @@ function AbaDiario() {
         </CardHeader>
         <CardContent className="px-2">
           {entradas.length ? (
-            <ul className="grid gap-0.5">
+            <ul className="grid grid-cols-1 gap-0.5">
               {entradas.slice(0, 30).map((d) => {
                 const h = HUMORES.find((x) => x.valor === d.humor)
                 return (

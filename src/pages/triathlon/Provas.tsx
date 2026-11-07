@@ -311,7 +311,7 @@ export default function ProvasTriathlon() {
           )}
 
           {passadas.length > 0 && (
-            <section className="grid gap-2">
+            <section className="grid grid-cols-1 gap-2">
               <h2 className="text-muted-foreground text-sm font-medium">Provas realizadas</h2>
               <Card className="gap-0 py-0">
                 <ul className="divide-y">
@@ -331,7 +331,7 @@ export default function ProvasTriathlon() {
                               {new Date(`${p.data}T12:00:00`).toLocaleDateString('pt-BR')} · {TIPOS_PROVA[p.tipo].nome}
                             </div>
                           </div>
-                          <div className="text-right text-sm tabular-nums">
+                          <div className="shrink-0 text-right text-sm tabular-nums">
                             <div className="font-medium">{p.resultado_tempo_seg ? duracaoRelogio(p.resultado_tempo_seg) : 'sem resultado'}</div>
                             {dif !== null && (
                               <div className={cn('text-xs', dif <= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400')}>

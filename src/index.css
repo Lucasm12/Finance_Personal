@@ -119,4 +119,9 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  /* fieldset nasce com min-width: min-content (padrão do navegador) e não encolhe em telas estreitas:
+     no celular de 320 px, "Estrutura do treino" fazia o diálogo Planejar treino rolar para o lado */
+  fieldset {
+    min-width: 0;
+  }
 }

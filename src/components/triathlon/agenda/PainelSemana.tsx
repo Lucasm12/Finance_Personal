@@ -30,14 +30,20 @@ export function BarraMeta({ p }: { p: ProgressoModalidade }) {
   const info = MODALIDADES[p.modalidade]
   const batida = (p.fracao ?? 0) >= 1
   return (
-    <div className="grid gap-1">
+    <div className="grid grid-cols-1 gap-1">
       <div className="flex items-center gap-2">
         <IconeModalidade modalidade={p.modalidade} className="size-6" />
-        <span className="text-sm font-medium">{info.nome}</span>
-        <span className="ml-auto text-sm tabular-nums">
+        <span className="min-w-0 truncate text-sm font-medium">{info.nome}</span>
+        {/* sem quebra no meio ("0 sessões de 2 / sessões") nas telas estreitas */}
+        <span className="ml-auto text-sm whitespace-nowrap tabular-nums">
           {p.meta !== null ? (
             <>
-              <strong>{quantidade(p.modalidade, round(p.realizado, p.modalidade))}</strong>
+              {/* academia: "0 de 2 sessões" (a unidade uma vez só); distâncias: "12 km de 35 km" */}
+              <strong>
+                {p.modalidade === 'forca'
+                  ? round(p.realizado, p.modalidade)
+                  : quantidade(p.modalidade, round(p.realizado, p.modalidade))}
+              </strong>
               <span className="text-muted-foreground"> de {quantidade(p.modalidade, p.meta)}</span>
             </>
           ) : (
@@ -125,7 +131,9 @@ export function PainelSemana({ semana, treinos, metas, provas, atividades, onMet
           {temMeta ? 'Metas' : 'Definir metas'}
         </Button>
       </CardHeader>
-      <CardContent className="grid gap-4">
+      {/* grid-cols-1 (= minmax(0, 1fr)) nos grids aninhados: sem isso, o nome longo de um treino em
+          "Feitos fora do plano" esticava o cartão (584 px num celular de 390; 1256 px no desktop) */}
+      <CardContent className="grid grid-cols-1 gap-4">
         {provasDaSemana.map((x) => (
           <div key={x.id} className="grid gap-1">
             <span className="text-xs font-medium">Prova nesta semana — {new Date(`${x.data}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
@@ -137,7 +145,7 @@ export function PainelSemana({ semana, treinos, metas, provas, atividades, onMet
             Esta semana ainda não tem metas. Defina quantos km, metros ou sessões quer fazer em cada modalidade.
           </p>
         )}
-        <div className="grid gap-3.5">
+        <div className="grid grid-cols-1 gap-3.5">
           {MODALIDADES_AGENDA.map((m) => (
             <BarraMeta key={m} p={p.modalidades[m]} />
           ))}
@@ -147,9 +155,10 @@ export function PainelSemana({ semana, treinos, metas, provas, atividades, onMet
           {contagens.map(({ status, n, extra }) => {
             const info = STATUS[status]
             return (
-              <div key={status} className="bg-muted/40 rounded-lg px-2.5 py-2">
-                <dt className="flex items-center gap-1 text-xs">
-                  <info.icone className={cn('size-3.5', info.texto)} aria-hidden />
+              // celular estreito: "Concluídos" desce para baixo do ícone em vez de vazar da coluna
+              <div key={status} className="bg-muted/40 min-w-0 rounded-lg px-2 py-2 sm:px-2.5">
+                <dt className="flex flex-wrap items-center gap-x-1 text-[11px] sm:text-xs">
+                  <info.icone className={cn('size-3.5 shrink-0', info.texto)} aria-hidden />
                   {info.rotulo}s
                 </dt>
                 <dd className="text-lg font-semibold tabular-nums">{n}</dd>
@@ -181,7 +190,7 @@ export function PainelSemana({ semana, treinos, metas, provas, atividades, onMet
         )}
 
         {foraDoPlano.length > 0 && (
-          <div className="grid gap-1.5">
+          <div className="grid grid-cols-1 gap-1.5">
             <div className="text-sm font-medium">Feitos fora do plano</div>
             <p className="text-muted-foreground -mt-1 text-xs">Atividades registradas em Treinos nesta semana. Inclua para contarem na meta.</p>
             <ul className="divide-y rounded-lg border">

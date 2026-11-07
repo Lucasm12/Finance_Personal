@@ -103,10 +103,17 @@ export function ItemPlanejado({ treino: t, onEditar, dia }: Props) {
   ].filter(Boolean)
 
   return (
-    <li className="flex items-start gap-3 px-3 py-2.5">
+    // No celular os botões descem para uma segunda linha (alinhados ao texto) e o nome ganha até 2 linhas:
+    // lado a lado, os 4 botões espremiam o nome até sobrar só "Intervalado ...".
+    <li className="flex flex-wrap items-start gap-x-3 gap-y-2 px-3 py-2.5 sm:flex-nowrap">
       <IconeModalidade modalidade={t.modalidade} className="mt-0.5 size-8" />
       <div className="min-w-0 flex-1">
-        <button type="button" onClick={() => onEditar(t)} className="block max-w-full truncate text-left font-medium hover:underline">
+        <button
+          type="button"
+          onClick={() => onEditar(t)}
+          title={t.nome}
+          className="line-clamp-2 block max-w-full text-left font-medium [overflow-wrap:anywhere] hover:underline sm:line-clamp-1"
+        >
           {t.nome}
         </button>
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-xs">
@@ -126,7 +133,7 @@ export function ItemPlanejado({ treino: t, onEditar, dia }: Props) {
           </p>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex w-full shrink-0 items-center gap-1 pl-11 sm:w-auto sm:pl-0">
         {podeExportar && (
           <Button
             variant="outline"
