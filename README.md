@@ -5,7 +5,7 @@ link discreto **área restrita** no rodapé, que leva à tela de login (`/login`
 
 | Endereço | O que é | Login |
 |---|---|---|
-| `/` | Portfólio: sobre, experiência, casos de QA, habilidades, formação (com publicações) e contato | não |
+| `/` | Portfólio: sobre, experiência, habilidades, formação (com publicações) e contato | não |
 | `/login` | Tela de login (Supabase Auth) | — |
 | `/sistema` | Escolha do módulo, primeira tela depois do login | sim |
 | `/financeiro`, `/triathlon`, `/pessoal` | Módulos | sim |
@@ -19,10 +19,16 @@ habilidades, formação e contatos); as seções estão em [src/components/portf
 página em [src/pages/Portfolio.tsx](src/pages/Portfolio.tsx). Regras de conteúdo: nada inventado; números mantêm o
 "~" do currículo e aparecem dentro da frase de origem.
 
-**Casos de QA** (`CASOS` em `portfolio.ts`, cartão em [Casos.tsx](src/components/portfolio/Casos.tsx)): cada caso
-tem contexto, problema, riscos, participação, abordagem, ferramentas, resultados, limites e links de evidência. Só
-vai para a página o caso que passa em `casoPublicavel` (campos obrigatórios e evidência `https`); sem nenhum, a seção
-e o link "Projetos" somem e a ação principal do topo volta a ser "Ver trajetória".
+**Casos de QA / Projetos** (`CASOS` em `portfolio.ts`, cartão em [Casos.tsx](src/components/portfolio/Casos.tsx)):
+a seção está **fora da página** (`MOSTRAR_PROJETOS = false`); o caso continua guardado. Com `true`, voltam a seção, o
+link "Projetos" no menu e a ação principal "Ver projetos" (sem ela, "Ver trajetória"); a numeração das seções
+(`SECOES` / `numeroSecao`) se ajusta sozinha. Cada caso tem contexto, problema, riscos, participação, abordagem,
+ferramentas, resultados, limites e links de evidência, e só aparece se passar em `casoPublicavel`.
+
+**Animações** ([portfolio.css](src/components/portfolio/portfolio.css)): entrada do topo em menos de 1 s (nome letra
+por letra, frases que se revezam, anel no botão principal, selos flutuando no desktop, terminal que se digita
+sozinho); o resto acompanha a rolagem (scroll-driven animations, com linha do tempo que se desenha) — sem espera por
+tempo, e quem não tem suporte vê tudo parado. "Reduzir movimento" desliga tudo (um teste confere).
 
 **Currículo em PDF:** coloque o arquivo em `public/` e preencha `PERFIL.curriculo` (ex.: `/curriculo-lucas-marques.pdf`);
 o botão "Baixar currículo" só aparece com o arquivo presente (um teste confere).

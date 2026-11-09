@@ -1,6 +1,9 @@
 /*
- * Portfólio (página inicial pública): tipografia, brilho do topo e detalhes visuais.
- * Conteúdo nunca fica escondido esperando animação: textos e ações aparecem de imediato.
+ * Portfólio (página inicial pública): tipografia, animações e detalhes visuais.
+ * Regras das animações:
+ * - nada fica escondido esperando um tempo: a entrada do topo dura < 1 s e o resto acompanha a rolagem
+ *   (scroll-driven animations; navegador sem suporte mostra tudo parado e visível);
+ * - "reduzir movimento" no sistema desliga tudo (fim do arquivo).
  * Reaproveita a grade e a luz dos cartões do login (login.css).
  * As fontes vêm empacotadas pelo Vite (font-src 'self' na CSP), não de um CDN.
  */
@@ -46,21 +49,136 @@ html.portfolio body {
   color: transparent;
 }
 
-/* brilho verde estático atrás do topo e do contato (sem animação) */
-.pf-aurora {
-  background:
-    radial-gradient(closest-side, rgb(16 185 129 / 0.16), transparent),
-    radial-gradient(closest-side at 70% 60%, rgb(45 212 191 / 0.08), transparent);
+/* palavras em destaque dos títulos: verde com um reflexo que passa devagar */
+.pf-reflexo {
+  background-image: linear-gradient(110deg, #6ee7b7 0%, #6ee7b7 38%, #ecfdf5 50%, #6ee7b7 62%, #6ee7b7 100%);
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: pf-reflexo 6s ease-in-out infinite;
 }
 
-/* surgimento curto do terminal (sem deslocamento nem desfoque) */
+@keyframes pf-reflexo {
+  0% {
+    background-position: 100% 0;
+  }
+  55%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+/* brilho verde atrás do topo e do contato, respirando devagar */
+.pf-aurora {
+  background:
+    radial-gradient(closest-side, rgb(16 185 129 / 0.18), transparent),
+    radial-gradient(closest-side at 70% 60%, rgb(45 212 191 / 0.1), transparent);
+  animation: pf-aurora 14s ease-in-out infinite alternate;
+}
+
+@keyframes pf-aurora {
+  to {
+    transform: translate(6%, 4%) scale(1.12);
+  }
+}
+
+/* ---------- entrada do topo (rápida: tudo visível em menos de 1 s) ---------- */
+.pf-letra {
+  display: inline-block;
+  animation: pf-letra 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 32ms);
+}
+
+@keyframes pf-letra {
+  from {
+    opacity: 0;
+    transform: translateY(0.5em) rotate(6deg);
+  }
+}
+
+.pf-subir {
+  animation: pf-subir 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--atraso, 0ms);
+}
+
+@keyframes pf-subir {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* palavras que se revezam: todas ocupam a mesma célula, então o texto ao redor não se desloca */
+.pf-revezar {
+  display: inline-grid;
+  vertical-align: bottom;
+}
+
+.pf-revezar > span {
+  grid-area: 1 / 1;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pf-revezar > span[data-ativa='false'] {
+  opacity: 0;
+  transform: translateY(0.45em);
+}
+
+/* anel de luz girando em volta do botão principal */
+@property --pf-angulo {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.pf-anel {
+  position: relative;
+  isolation: isolate;
+}
+
+.pf-anel::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(from var(--pf-angulo), #34d399, rgb(52 211 153 / 0) 25%, rgb(52 211 153 / 0) 75%, #34d399);
+  filter: blur(2px);
+  animation: pf-girar 3.2s linear infinite;
+}
+
+@keyframes pf-girar {
+  to {
+    --pf-angulo: 360deg;
+  }
+}
+
+/* selos flutuando em volta do terminal */
+.pf-flutuar {
+  animation: pf-flutuar 6s ease-in-out infinite;
+  animation-delay: var(--atraso, 0ms);
+}
+
+@keyframes pf-flutuar {
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* surgimento curto do terminal */
 .pf-surgir {
-  animation: pf-surgir 0.35s ease-out both;
+  animation: pf-surgir 0.5s ease-out both;
+  animation-delay: var(--atraso, 0ms);
 }
 
 @keyframes pf-surgir {
   from {
     opacity: 0;
+    transform: translateY(12px) scale(0.98);
   }
 }
 
@@ -89,12 +207,79 @@ html.portfolio body {
   pointer-events: none;
 }
 
+/* ---------- animações que acompanham a rolagem ---------- */
+/* Só com suporte a scroll-driven animations; sem suporte, tudo aparece normalmente (sem animação). */
+@supports (animation-timeline: view()) {
+  /* cabeçalhos, cartões e itens surgem subindo enquanto entram na tela (presos ao scroll, sem espera) */
+  .pf-aparecer {
+    animation: pf-aparecer linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 22%;
+  }
+
+  @keyframes pf-aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(36px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* traço do rótulo das seções ("01 ——") se estica ao entrar */
+  .pf-traco {
+    transform-origin: left center;
+    animation: pf-traco linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 30%;
+  }
+
+  @keyframes pf-traco {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  /* linha do tempo (Experiência, Formação) se desenha conforme a lista passa pela tela */
+  .pf-linha {
+    view-timeline-name: --pf-linha;
+  }
+
+  .pf-linha::before {
+    transform-origin: top center;
+    animation: pf-linha linear both;
+    animation-timeline: --pf-linha;
+    animation-range: entry 10% cover 70%;
+  }
+
+  @keyframes pf-linha {
+    from {
+      transform: scaleY(0);
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.portfolio {
     scroll-behavior: auto;
   }
 
-  .pf-surgir {
-    animation: none;
+  .pf-reflexo,
+  .pf-aurora,
+  .pf-letra,
+  .pf-subir,
+  .pf-anel::before,
+  .pf-flutuar,
+  .pf-surgir,
+  .pf-aparecer,
+  .pf-traco,
+  .pf-linha::before {
+    animation: none !important;
+  }
+
+  .pf-revezar > span {
+    transition: none;
   }
 }

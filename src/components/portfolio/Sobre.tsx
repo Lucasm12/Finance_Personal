@@ -1,7 +1,7 @@
 import { DatabaseIcon, ListChecksIcon, ShieldCheckIcon, WorkflowIcon, type LucideIcon } from 'lucide-react'
 
 import { CabecalhoSecao, Cartao, Destaque, IconeQuadro, Secao } from '@/components/portfolio/Comum'
-import { SOBRE } from '@/lib/portfolio'
+import { numeroSecao, SOBRE } from '@/lib/portfolio'
 
 const ICONES: Record<(typeof SOBRE.pilares)[number]['id'], LucideIcon> = {
   requisito: ListChecksIcon,
@@ -18,7 +18,7 @@ export function Sobre() {
         <div>
           <CabecalhoSecao
             id="titulo-sobre"
-            numero="01"
+            numero={numeroSecao('sobre')}
             rotulo="sobre · abordagem"
             titulo={
               <>

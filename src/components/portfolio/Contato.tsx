@@ -12,7 +12,7 @@ import {
   IconeWhatsApp,
   Secao,
 } from '@/components/portfolio/Comum'
-import { linkTelefone, linkWhatsApp, PERFIL } from '@/lib/portfolio'
+import { linkTelefone, linkWhatsApp, numeroSecao, PERFIL } from '@/lib/portfolio'
 import { cn } from '@/lib/utils'
 
 const REDES = [
@@ -34,7 +34,7 @@ export function Contato() {
       <div className="relative">
         <CabecalhoSecao
           id="titulo-contato"
-          numero="06"
+          numero={numeroSecao('contato')}
           rotulo="contato"
           centralizado
           titulo={
@@ -45,7 +45,7 @@ export function Contato() {
           descricao="QA, automação de testes, ensino ou pesquisa: escolha o canal que preferir."
         />
 
-        <div className="mt-10 flex flex-col items-center text-center sm:mt-12">
+        <div className="pf-aparecer mt-10 flex flex-col items-center text-center sm:mt-12">
           <p className="pf-mono flex items-center gap-2 text-xs tracking-[0.18em] text-white/70 uppercase">
             <MailIcon aria-hidden className="size-3.5" />
             e-mail
@@ -87,14 +87,14 @@ export function Contato() {
 
         <ul className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {REDES.map((rede) => (
-            <li key={rede.id}>
+            <li key={rede.id} className="pf-aparecer">
               <a
                 href={rede.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 onPointerMove={moverLuzCartao}
                 className={cn(
-                  'group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0a0d10] p-4 transition-colors duration-200 hover:border-emerald-400/40 sm:p-5',
+                  'group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0a0d10] p-4 transition-[border-color,box-shadow,translate] duration-300 hover:border-emerald-400/40 hover:shadow-[0_22px_45px_-24px_rgb(16_185_129/0.6)] motion-safe:hover:-translate-y-1 sm:p-5',
                   FOCO,
                 )}
               >

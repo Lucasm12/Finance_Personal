@@ -60,9 +60,9 @@ export function Secao({
   )
 }
 
-/** Palavra em destaque nos títulos (serifada, itálica, verde). */
+/** Palavra em destaque nos títulos (serifada, itálica, verde, com um reflexo que passa devagar). */
 export function Destaque({ children }: { children: ReactNode }) {
-  return <span className="pf-serif text-[1.08em] tracking-normal text-emerald-300">{children}</span>
+  return <span className="pf-serif pf-reflexo pr-[0.06em] text-[1.08em] tracking-normal text-emerald-300">{children}</span>
 }
 
 /** Rótulo numerado + título + descrição, no topo de cada seção. */
@@ -84,7 +84,7 @@ export function CabecalhoSecao({
   className?: string
 }) {
   return (
-    <div className={cn('max-w-3xl', centralizado && 'mx-auto text-center', className)}>
+    <div className={cn('pf-aparecer max-w-3xl', centralizado && 'mx-auto text-center', className)}>
       <p
         className={cn(
           'pf-mono flex items-center gap-3 text-xs tracking-[0.18em] text-emerald-300 uppercase',
@@ -92,7 +92,7 @@ export function CabecalhoSecao({
         )}
       >
         <span>{numero}</span>
-        <span aria-hidden className="h-px w-10 bg-gradient-to-r from-emerald-400/70 to-transparent" />
+        <span aria-hidden className="pf-traco h-px w-10 bg-gradient-to-r from-emerald-400/70 to-transparent" />
         <span className="text-white/70">{rotulo}</span>
       </p>
       <h2
@@ -123,18 +123,23 @@ export function Subtitulo({ icone: Icone, children, className }: { icone: Lucide
   )
 }
 
-/** Cartão escuro com luz suave que acompanha o cursor (a mesma da tela de login). */
+/**
+ * Cartão escuro com luz que acompanha o cursor (a mesma da tela de login). Surge com a rolagem e,
+ * no mouse, sobe com um brilho verde.
+ */
 export function Cartao({
   children,
   className,
   destaque,
+  aparecer = true,
   ...props
-}: ComponentProps<'div'> & { destaque?: boolean }) {
+}: ComponentProps<'div'> & { destaque?: boolean; aparecer?: boolean }) {
   return (
     <div
       onPointerMove={moverLuzCartao}
       className={cn(
-        'group relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d10] transition-colors duration-200 hover:border-emerald-400/25',
+        'group relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0a0d10] transition-[border-color,box-shadow,translate] duration-300 hover:border-emerald-400/30 hover:shadow-[0_22px_45px_-24px_rgb(16_185_129/0.55)] motion-safe:hover:-translate-y-1',
+        aparecer && 'pf-aparecer',
         destaque && 'pf-borda border-transparent hover:border-transparent',
         className,
       )}
@@ -160,10 +165,12 @@ export function Chip({ children, atual, className }: { children: ReactNode; atua
     <Badge
       variant="outline"
       className={cn(
-        'pf-mono rounded-full px-2.5 py-1 text-xs font-normal',
+        // max-w-full + whitespace-normal: etiqueta longa ("Programação para Dispositivos Móveis") quebra linha
+        // em vez de passar da largura do cartão no celular de 320 px
+        'pf-mono max-w-full rounded-full px-2.5 py-1 text-xs font-normal whitespace-normal transition-colors duration-200',
         atual
           ? 'gap-1.5 border-emerald-400/35 bg-emerald-400/10 text-emerald-200'
-          : 'border-white/12 bg-white/[0.03] text-white/80',
+          : 'border-white/12 bg-white/[0.03] text-white/80 hover:border-emerald-400/45 hover:bg-emerald-400/10 hover:text-emerald-100',
         className,
       )}
     >
@@ -180,7 +187,7 @@ export function IconeQuadro({ icone: Icone, className }: { icone: LucideIcon | I
   return (
     <span
       className={cn(
-        'flex size-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300',
+        'flex size-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-300 transition-transform duration-300 motion-safe:group-hover:scale-110 motion-safe:group-hover:-rotate-6',
         className,
       )}
     >
@@ -189,25 +196,26 @@ export function IconeQuadro({ icone: Icone, className }: { icone: LucideIcon | I
   )
 }
 
-/** Ponto da linha do tempo (Experiência e Formação). */
+/** Ponto da linha do tempo (Experiência e Formação); o atual pulsa. */
 export function Marcador({ atual, className }: { atual?: boolean; className?: string }) {
   return (
     <span
       aria-hidden
       className={cn(
         'absolute top-8 left-0 flex size-[15px] items-center justify-center rounded-full border bg-[#06080a]',
-        atual ? 'border-emerald-300' : 'border-emerald-400/50',
+        atual ? 'border-emerald-300 shadow-[0_0_0_4px_rgb(52_211_153/0.15)]' : 'border-emerald-400/50',
         className,
       )}
     >
-      <span className="size-[5px] rounded-full bg-emerald-400" />
+      {atual && <span className="absolute inline-flex size-full rounded-full bg-emerald-400/40 motion-safe:animate-ping" />}
+      <span className="relative size-[5px] rounded-full bg-emerald-400" />
     </span>
   )
 }
 
-/** Linha vertical da linha do tempo (aplicar no <ol>). */
+/** Linha vertical da linha do tempo (aplicar no <ol>); com suporte, ela se desenha conforme a rolagem. */
 export const LINHA_DO_TEMPO =
-  "relative before:absolute before:top-3 before:bottom-3 before:left-[7px] before:w-px before:bg-gradient-to-b before:from-emerald-400/70 before:via-white/10 before:to-white/[0.03] before:content-['']"
+  "pf-linha relative before:absolute before:top-3 before:bottom-3 before:left-[7px] before:w-px before:bg-gradient-to-b before:from-emerald-400/70 before:via-white/10 before:to-white/[0.03] before:content-['']"
 
 /** Logotipo do GitHub (o lucide não tem mais ícones de marcas). */
 export function IconeGitHub({ className }: { className?: string }) {

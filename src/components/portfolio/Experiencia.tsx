@@ -14,6 +14,7 @@ import {
   DOCENCIA,
   EXPERIENCIA_ANTERIOR,
   EXPERIENCIAS_QA,
+  numeroSecao,
   type Docencia,
   type Experiencia as TipoExperiencia,
 } from '@/lib/portfolio'
@@ -37,7 +38,7 @@ function Tecnologias({ itens }: { itens: string[] }) {
 
 function CartaoExperiencia({ exp }: { exp: TipoExperiencia }) {
   return (
-    <Cartao className="p-5 sm:p-7">
+    <Cartao aparecer={false} className="p-5 sm:p-7">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0">
           <h4 className="text-lg font-semibold tracking-tight sm:text-xl">{exp.cargo}</h4>
@@ -105,7 +106,7 @@ export function Experiencia() {
     <Secao id="experiencia" rotuloId="titulo-experiencia">
       <CabecalhoSecao
         id="titulo-experiencia"
-        numero="02"
+        numero={numeroSecao('experiencia')}
         rotulo="experiência"
         titulo={
           <>
@@ -120,7 +121,7 @@ export function Experiencia() {
       </Subtitulo>
       <ol className={cn(LINHA_DO_TEMPO, 'mt-6 space-y-4 sm:space-y-5')}>
         {EXPERIENCIAS_QA.map((exp) => (
-          <li key={exp.empresa + exp.periodo} className="relative pl-8 sm:pl-11">
+          <li key={exp.empresa + exp.periodo} className="pf-aparecer relative pl-8 sm:pl-11">
             <Marcador atual={exp.atual} />
             <CartaoExperiencia exp={exp} />
           </li>
@@ -130,7 +131,7 @@ export function Experiencia() {
       <Subtitulo icone={PresentationIcon} className="mt-16">
         Docência
       </Subtitulo>
-      <ul className="mt-6 grid gap-4 md:grid-cols-2">
+      <ul className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         {DOCENCIA.map((d) => (
           <li key={d.instituicao + d.periodo}>
             <CartaoDocencia d={d} />

@@ -11,7 +11,7 @@ import {
   Marcador,
   Secao,
 } from '@/components/portfolio/Comum'
-import { CERTIFICACOES, FORMACAO, IDIOMAS, PUBLICACOES } from '@/lib/portfolio'
+import { CERTIFICACOES, FORMACAO, IDIOMAS, numeroSecao, PUBLICACOES } from '@/lib/portfolio'
 import { cn } from '@/lib/utils'
 
 function TituloQuadro({ icone, children }: { icone: typeof AwardIcon; children: string }) {
@@ -28,7 +28,7 @@ export function Formacao() {
     <Secao id="formacao" rotuloId="titulo-formacao">
       <CabecalhoSecao
         id="titulo-formacao"
-        numero="05"
+        numero={numeroSecao('formacao')}
         rotulo="formação"
         titulo={
           <>
@@ -41,9 +41,9 @@ export function Formacao() {
       <div className="mt-10 grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:gap-8 [&>*]:min-w-0">
         <ol className={cn(LINHA_DO_TEMPO, 'space-y-4')}>
           {FORMACAO.map((f) => (
-            <li key={f.nivel + f.curso} className="relative pl-8 sm:pl-10">
+            <li key={f.nivel + f.curso} className="pf-aparecer relative pl-8 sm:pl-10">
               <Marcador atual={f.emAndamento} className="top-7" />
-              <Cartao className={cn('p-5 sm:p-6', f.emAndamento && 'border-emerald-400/30')}>
+              <Cartao aparecer={false} className={cn('p-5 sm:p-6', f.emAndamento && 'border-emerald-400/30')}>
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                   <p
                     className={cn(

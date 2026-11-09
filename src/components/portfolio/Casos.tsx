@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { ArrowUpRightIcon, CheckIcon, MinusIcon } from 'lucide-react'
 
 import { CabecalhoSecao, Cartao, Chip, Destaque, FOCO, Secao } from '@/components/portfolio/Comum'
-import { CASOS_PUBLICADOS, type Caso } from '@/lib/portfolio'
+import { CASOS_NA_PAGINA, numeroSecao, type Caso } from '@/lib/portfolio'
 import { cn } from '@/lib/utils'
 
 function Campo({ titulo, children, className }: { titulo: string; children: ReactNode; className?: string }) {
@@ -115,13 +115,13 @@ export function CartaoCaso({ caso }: { caso: Caso }) {
 
 /** Seção de casos práticos. Não aparece enquanto não houver caso completo (sem seção vazia nem cartão fictício). */
 export function Casos() {
-  if (CASOS_PUBLICADOS.length === 0) return null
+  if (CASOS_NA_PAGINA.length === 0) return null
 
   return (
     <Secao id="projetos" rotuloId="titulo-projetos">
       <CabecalhoSecao
         id="titulo-projetos"
-        numero="03"
+        numero={numeroSecao('projetos')}
         rotulo="projetos"
         titulo={
           <>
@@ -131,7 +131,7 @@ export function Casos() {
         descricao="Contexto, riscos, abordagem de testes e evidências públicas para conferir."
       />
       <ul className="mt-10 space-y-6">
-        {CASOS_PUBLICADOS.map((caso) => (
+        {CASOS_NA_PAGINA.map((caso) => (
           <li key={caso.id}>
             <CartaoCaso caso={caso} />
           </li>

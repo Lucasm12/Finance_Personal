@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 
 import { CabecalhoSecao, Cartao, Chip, Destaque, IconeQuadro, Secao } from '@/components/portfolio/Comum'
-import { HABILIDADES, type GrupoHabilidade } from '@/lib/portfolio'
+import { HABILIDADES, numeroSecao, type GrupoHabilidade } from '@/lib/portfolio'
 
 const VISUAL: Record<GrupoHabilidade['id'], { icone: LucideIcon; classe: string }> = {
   automacao: { icone: BugPlayIcon, classe: 'lg:col-span-2' },
@@ -29,7 +29,7 @@ export function Habilidades() {
     <Secao id="habilidades" rotuloId="titulo-habilidades">
       <CabecalhoSecao
         id="titulo-habilidades"
-        numero="04"
+        numero={numeroSecao('habilidades')}
         rotulo="habilidades"
         titulo={
           <>

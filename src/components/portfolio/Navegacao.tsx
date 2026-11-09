@@ -3,21 +3,14 @@ import { ArrowRightIcon, MenuIcon, XIcon } from 'lucide-react'
 
 import { LogoAnimado } from '@/components/login/LogoAnimado'
 import { FOCO, useSecaoAtiva } from '@/components/portfolio/Comum'
-import { CASOS_PUBLICADOS } from '@/lib/portfolio'
+import { SECOES } from '@/lib/portfolio'
 import { cn } from '@/lib/utils'
 
 /**
- * Links das seções, na ordem da página. "Projetos" só aparece quando há caso publicado.
+ * Links das seções, na ordem da página (lista única em lib/portfolio: SECOES).
  * O acesso ao sistema (login) não fica aqui: é de uso pessoal e está no rodapé.
  */
-export const LINKS_SECOES = [
-  { id: 'sobre', rotulo: 'Sobre' },
-  { id: 'experiencia', rotulo: 'Experiência' },
-  ...(CASOS_PUBLICADOS.length > 0 ? [{ id: 'projetos', rotulo: 'Projetos' }] : []),
-  { id: 'habilidades', rotulo: 'Habilidades' },
-  { id: 'formacao', rotulo: 'Formação' },
-  { id: 'contato', rotulo: 'Contato' },
-]
+export const LINKS_SECOES = SECOES
 
 const IDS_OBSERVADOS = ['inicio', ...LINKS_SECOES.map((l) => l.id)]
 

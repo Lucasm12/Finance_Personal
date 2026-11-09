@@ -97,6 +97,12 @@ export const PERFIL = {
   /** Especialidade, em destaque no topo; o trecho final aparece em verde. */
   chamada: 'Engenharia de qualidade e automação de testes para',
   chamadaDestaque: 'sistemas críticos',
+  /**
+   * Alternativas que se revezam no lugar de chamadaDestaque (animação do topo). Todas vêm do currículo:
+   * "sistemas críticos dos setores de saúde e financeiro", "fintech de meios de pagamento".
+   * Leitores de tela e "reduzir movimento" recebem só a primeira.
+   */
+  chamadaRevezamento: ['sistemas críticos', 'a área da saúde', 'meios de pagamento', 'fintechs'],
   resumoCurto:
     'Mais de 4 anos em QA de aplicações web, mobile e APIs nos setores de saúde e financeiro, com foco em automação de testes integrada ao CI/CD.',
   /** Diferenciais complementares, abaixo do resumo. */
@@ -360,6 +366,32 @@ export function casoPublicavel(caso: Caso): boolean {
 }
 
 export const CASOS_PUBLICADOS = CASOS.filter(casoPublicavel)
+
+/**
+ * Seção "Projetos" na página. false: some a seção, o link do menu e o botão "Ver projetos" (volta "Ver trajetória");
+ * o caso e o componente continuam no código. Para mostrar de novo, troque para true.
+ */
+export const MOSTRAR_PROJETOS = false
+export const CASOS_NA_PAGINA = MOSTRAR_PROJETOS ? CASOS_PUBLICADOS : []
+
+/** Seções na ordem da página: alimentam o menu e a numeração ("01", "02"...) dos cabeçalhos. */
+export const SECOES = [
+  { id: 'sobre', rotulo: 'Sobre' },
+  { id: 'experiencia', rotulo: 'Experiência' },
+  ...(CASOS_NA_PAGINA.length > 0 ? [{ id: 'projetos', rotulo: 'Projetos' }] : []),
+  { id: 'habilidades', rotulo: 'Habilidades' },
+  { id: 'formacao', rotulo: 'Formação' },
+  { id: 'contato', rotulo: 'Contato' },
+]
+
+/** "01", "02"... conforme a posição da seção no menu (se uma seção sai, a numeração se ajusta sozinha). */
+export function numeroSecao(id: string): string {
+  return String(SECOES.findIndex((s) => s.id === id) + 1).padStart(2, '0')
+}
+
+/** Ação principal do topo: os casos, quando estão na página; senão, a trajetória. */
+export const ACAO_PRINCIPAL =
+  CASOS_NA_PAGINA.length > 0 ? { rotulo: 'Ver projetos', href: '#projetos' } : { rotulo: 'Ver trajetória', href: '#experiencia' }
 
 export const PUBLICACOES: Publicacao[] = [
   {

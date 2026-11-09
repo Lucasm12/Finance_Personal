@@ -3,18 +3,23 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
+  ACAO_PRINCIPAL,
   CASOS,
+  CASOS_NA_PAGINA,
   CASOS_PUBLICADOS,
   DOCENCIA,
   EXPERIENCIAS_QA,
   FORMACAO,
   HABILIDADES,
+  MOSTRAR_PROJETOS,
   PERFIL,
   PUBLICACOES,
+  SECOES,
   casoPublicavel,
   dadosEstruturados,
   linkTelefone,
   linkWhatsApp,
+  numeroSecao,
   type Caso,
 } from '@/lib/portfolio'
 import { ROTA_INICIO, ROTA_LOGIN, ROTA_MODULOS } from '@/modulos'
@@ -188,6 +193,40 @@ describe('casos práticos de QA', () => {
       { riscos: [] },
     ]
     for (const v of variacoes) expect(casoPublicavel({ ...base, ...v })).toBe(false)
-    expect(ler('src/components/portfolio/Casos.tsx')).toMatch(/if \(CASOS_PUBLICADOS\.length === 0\) return null/)
+    expect(ler('src/components/portfolio/Casos.tsx')).toMatch(/if \(CASOS_NA_PAGINA\.length === 0\) return null/)
+  })
+})
+
+describe('seção Projetos fora da página e numeração das seções', () => {
+  it('com MOSTRAR_PROJETOS = false: sem seção, sem link no menu e ação principal "Ver trajetória"', () => {
+    expect(MOSTRAR_PROJETOS).toBe(false)
+    expect(CASOS_NA_PAGINA).toEqual([])
+    expect(SECOES.map((s) => s.id)).toEqual(['sobre', 'experiencia', 'habilidades', 'formacao', 'contato'])
+    expect(ACAO_PRINCIPAL).toEqual({ rotulo: 'Ver trajetória', href: '#experiencia' })
+    // o caso continua guardado e completo, pronto para voltar
+    expect(CASOS_PUBLICADOS.length).toBeGreaterThan(0)
+  })
+
+  it('numeração "01", "02"... segue o menu e nenhum cabeçalho tem número fixo no código', () => {
+    expect(SECOES.map((s) => numeroSecao(s.id))).toEqual(['01', '02', '03', '04', '05'])
+    for (const arquivo of ['Sobre', 'Experiencia', 'Casos', 'Habilidades', 'Formacao', 'Contato']) {
+      expect(ler(`src/components/portfolio/${arquivo}.tsx`)).not.toMatch(/numero="\d+"/)
+    }
+  })
+})
+
+describe('animações do portfólio', () => {
+  it('as frases que se revezam no topo começam pela mesma que leitores de tela recebem', () => {
+    expect(PERFIL.chamadaRevezamento[0]).toBe(PERFIL.chamadaDestaque)
+    expect(new Set(PERFIL.chamadaRevezamento).size).toBe(PERFIL.chamadaRevezamento.length)
+  })
+
+  it('"reduzir movimento" desliga toda animação do CSS do portfólio', () => {
+    const css = ler('src/components/portfolio/portfolio.css')
+    const [, reduzir = ''] = css.split('@media (prefers-reduced-motion: reduce)')
+    // classes que declaram animation: ... (inclui ::before), exceto as presas a @supports dentro de reduce
+    const animadas = [...css.matchAll(/(\.pf-[a-z-]+(?:::before)?)\s*\{[^}]*\banimation:\s*pf-/g)].map((m) => m[1]!)
+    expect(animadas.length).toBeGreaterThanOrEqual(8)
+    for (const classe of new Set(animadas)) expect(reduzir, `${classe} sem regra de reduzir movimento`).toContain(classe)
   })
 })

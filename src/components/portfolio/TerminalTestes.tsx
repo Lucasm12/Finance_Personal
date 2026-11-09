@@ -17,28 +17,39 @@ const COMPETENCIAS = [
   'Pesquisa em Machine Learning (doutorado)',
 ]
 
-// Animação opcional (botão "rodar"), em passos de 30 ms.
-const INTERVALO = 30
+// Animação em "passos" de 22 ms medidos pelo relógio (~2 s no total), com uma pausa inicial curta na
+// primeira vez, enquanto o terminal surge. Pelo tempo decorrido (e não por setTimeout encadeado): se o
+// navegador atrasar quadros, a digitação pula letras em vez de se arrastar.
+const INTERVALO = 22
+const ESPERA = 12
 const FIM_COMANDO = COMANDO.length
-const INICIO_ITENS = FIM_COMANDO + 6
-const POR_ITEM = 6
+const INICIO_ITENS = FIM_COMANDO + 5
+const POR_ITEM = 5
 const FIM = INICIO_ITENS + COMPETENCIAS.length * POR_ITEM + 2
 
 /**
- * Terminal inspirado no Cypress: abre já completo (nada para esperar) e só anima quando a pessoa pede.
- * A legenda deixa claro que é uma ilustração das competências, não o resultado de testes reais.
+ * Terminal inspirado no Cypress: se digita sozinho uma vez ao abrir a página (e de novo no botão "rodar").
+ * Com "reduzir movimento", já aparece completo. A legenda deixa claro que é uma ilustração das competências,
+ * não o resultado de testes reais.
  */
 export function TerminalTestes({ className }: { className?: string }) {
   const [reduzido] = useState(movimentoReduzido)
-  const [passo, setPasso] = useState(FIM)
+  const [rodada, setRodada] = useState(0)
+  const [passo, setPasso] = useState(() => (reduzido ? FIM : -ESPERA))
 
   useEffect(() => {
-    if (passo >= FIM) return
-    const id = setTimeout(() => setPasso((p) => p + 1), INTERVALO)
-    return () => clearTimeout(id)
-  }, [passo])
+    if (reduzido) return
+    const espera = rodada === 0 ? ESPERA : 0
+    const inicio = performance.now()
+    let quadro = requestAnimationFrame(function tique(agora) {
+      const p = Math.min(FIM, Math.floor((agora - inicio) / INTERVALO) - espera)
+      setPasso(p)
+      if (p < FIM) quadro = requestAnimationFrame(tique)
+    })
+    return () => cancelAnimationFrame(quadro)
+  }, [rodada, reduzido])
 
-  const letras = Math.min(passo, COMANDO.length)
+  const letras = Math.min(Math.max(passo, 0), COMANDO.length)
   const digitando = passo < FIM_COMANDO
   const terminou = passo >= FIM
 
@@ -54,7 +65,10 @@ export function TerminalTestes({ className }: { className?: string }) {
             {!reduzido && (
               <button
                 type="button"
-                onClick={() => setPasso(0)}
+                onClick={() => {
+                  setPasso(0)
+                  setRodada((r) => r + 1)
+                }}
                 disabled={!terminou}
                 aria-label="Animar o terminal de novo"
                 className={cn(
