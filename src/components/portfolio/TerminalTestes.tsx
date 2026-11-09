@@ -29,8 +29,8 @@ const FIM = INICIO_ITENS + COMPETENCIAS.length * POR_ITEM + 2
 
 /**
  * Terminal inspirado no Cypress: se digita sozinho uma vez ao abrir a página (e de novo no botão "rodar").
- * Com "reduzir movimento", já aparece completo. A legenda deixa claro que é uma ilustração das competências,
- * não o resultado de testes reais.
+ * Com "reduzir movimento", já aparece completo. A última linha ("· ilustração") deixa claro que apresenta
+ * competências, não resultados de testes reais.
  */
 export function TerminalTestes({ className }: { className?: string }) {
   const [reduzido] = useState(movimentoReduzido)
@@ -120,9 +120,6 @@ export function TerminalTestes({ className }: { className?: string }) {
           </div>
         </div>
       </div>
-      <figcaption className="mt-3 text-center text-xs text-pretty text-white/60">
-        Ilustração no formato de um relatório do Cypress: apresenta competências, não resultados de testes reais.
-      </figcaption>
     </figure>
   )
 }

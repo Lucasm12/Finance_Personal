@@ -44,18 +44,6 @@ export interface Formacao {
   emAndamento?: boolean
 }
 
-export interface Publicacao {
-  id: string
-  area: string
-  /** título original, em inglês */
-  titulo: string
-  descricao: string
-  /** preencher só com dados verificáveis */
-  ano?: string
-  veiculo?: string
-  link?: string
-}
-
 export interface LinkEvidencia {
   rotulo: string
   href: string
@@ -393,21 +381,6 @@ export function numeroSecao(id: string): string {
 export const ACAO_PRINCIPAL =
   CASOS_NA_PAGINA.length > 0 ? { rotulo: 'Ver projetos', href: '#projetos' } : { rotulo: 'Ver trajetória', href: '#experiencia' }
 
-export const PUBLICACOES: Publicacao[] = [
-  {
-    id: 'aedes',
-    area: 'Visão computacional',
-    titulo: 'Aedes Aegypti egg count in ovitrap straws based on Deep Learning',
-    descricao: 'Contagem automatizada de ovos do Aedes aegypti em palhetas de ovitrampas com Deep Learning.',
-  },
-  {
-    id: 'inclusao',
-    area: 'Extensão universitária',
-    titulo: 'Digital Inclusion through Extensionist Actions in the Municipality of Picos-PI',
-    descricao: 'Inclusão digital por meio de ações extensionistas no município de Picos (PI).',
-  },
-]
-
 const UFPI = 'Universidade Federal do Piauí (UFPI)'
 
 export const FORMACAO: Formacao[] = [
@@ -422,18 +395,6 @@ export const FORMACAO: Formacao[] = [
   { nivel: 'Mestrado', curso: 'Engenharia Elétrica', foco: 'Deep Learning', instituicao: UFPI, periodo: '2020 – 2022' },
   { nivel: 'Especialização', curso: 'Engenharia de Software', instituicao: 'Faculdade Unyleya', periodo: '2019 – 2020' },
   { nivel: 'Bacharelado', curso: 'Sistemas de Informação', instituicao: UFPI, periodo: '2013 – 2017' },
-]
-
-/** Como estão no currículo. O item da CCNA precisa de revisão: certificação oficial ou cursos da trilha? */
-export const CERTIFICACOES: { nome: string; detalhe?: string }[] = [
-  { nome: 'Scrum Foundation Professional Certificate (SFPC)' },
-  { nome: 'CCNA Routing and Switching', detalhe: 'Conceitos Essenciais e Dimensionamento de Redes' },
-]
-
-export const IDIOMAS = [
-  { idioma: 'Português', nivel: 'Nativo' },
-  { idioma: 'Inglês', nivel: 'Proficiência profissional limitada' },
-  { idioma: 'Espanhol', nivel: 'Proficiência profissional limitada' },
 ]
 
 const somenteDigitos = (texto: string) => texto.replace(/\D/g, '')
@@ -474,6 +435,5 @@ export function dadosEstruturados() {
       'Machine Learning',
       'Visão Computacional',
     ],
-    knowsLanguage: ['pt-BR', 'en', 'es'],
   }
 }

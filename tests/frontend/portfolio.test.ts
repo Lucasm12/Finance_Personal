@@ -13,7 +13,6 @@ import {
   HABILIDADES,
   MOSTRAR_PROJETOS,
   PERFIL,
-  PUBLICACOES,
   SECOES,
   casoPublicavel,
   dadosEstruturados,
@@ -136,7 +135,6 @@ describe('conteúdo do portfólio', () => {
     }
     for (const d of DOCENCIA) expect(d.disciplinas?.length || d.descricao).toBeTruthy()
     expect(FORMACAO.map((f) => f.nivel)).toEqual(['Doutorado', 'Mestrado', 'Especialização', 'Bacharelado'])
-    expect(PUBLICACOES.length).toBe(2)
     expect(new Set(HABILIDADES.map((h) => h.id)).size).toBe(HABILIDADES.length)
   })
 
@@ -152,7 +150,8 @@ describe('conteúdo do portfólio', () => {
   it('terminal: ilustração das competências, sem tempos nem contagem que pareçam testes reais', () => {
     const terminal = ler('src/components/portfolio/TerminalTestes.tsx')
     expect(terminal).not.toMatch(/\d+ms|passing|failing/)
-    expect(terminal).toContain('não resultados de testes reais')
+    // a última linha do próprio terminal avisa que é uma ilustração
+    expect(terminal).toContain(' · ilustração')
   })
 
   it('dados estruturados (schema.org) da pessoa', () => {

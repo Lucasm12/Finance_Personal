@@ -5,7 +5,7 @@ link discreto **área restrita** no rodapé, que leva à tela de login (`/login`
 
 | Endereço | O que é | Login |
 |---|---|---|
-| `/` | Portfólio: sobre, experiência, habilidades, formação (com publicações) e contato | não |
+| `/` | Portfólio: sobre, experiência, habilidades, formação e contato | não |
 | `/login` | Tela de login (Supabase Auth) | — |
 | `/sistema` | Escolha do módulo, primeira tela depois do login | sim |
 | `/financeiro`, `/triathlon`, `/pessoal` | Módulos | sim |

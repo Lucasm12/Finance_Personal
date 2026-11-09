@@ -259,6 +259,33 @@ html.portfolio body {
       transform: scaleY(0);
     }
   }
+
+  /* Formação no desktop: os degraus sobem um depois do outro e a linha que os liga se desenha */
+  .pf-escada {
+    view-timeline-name: --pf-escada;
+  }
+
+  .pf-trajetoria {
+    stroke-dasharray: 1;
+    animation: pf-trajetoria linear both;
+    animation-timeline: --pf-escada;
+    animation-range: entry 35% cover 55%;
+  }
+
+  @keyframes pf-trajetoria {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .pf-degrau {
+      animation-range: entry calc(var(--i, 0) * 9%) cover calc(22% + var(--i, 0) * 9%);
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -275,7 +302,8 @@ html.portfolio body {
   .pf-surgir,
   .pf-aparecer,
   .pf-traco,
-  .pf-linha::before {
+  .pf-linha::before,
+  .pf-trajetoria {
     animation: none !important;
   }
 
