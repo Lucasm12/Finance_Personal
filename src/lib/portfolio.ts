@@ -93,8 +93,6 @@ export const PERFIL = {
   chamadaRevezamento: ['sistemas críticos', 'a área da saúde', 'meios de pagamento', 'fintechs'],
   resumoCurto:
     'Mais de 4 anos em QA de aplicações web, mobile e APIs nos setores de saúde e financeiro, com foco em automação de testes integrada ao CI/CD.',
-  /** Diferenciais complementares, abaixo do resumo. */
-  diferenciais: ['Professor de Teste e Qualidade de Software', 'Doutorando em Ciência da Computação (UFPI)'],
   /**
    * Caminho do currículo em PDF dentro de public/ (ex.: '/curriculo-lucas-marques.pdf').
    * Fica null até existir um arquivo atualizado: sem arquivo, o botão "Baixar currículo" não aparece.

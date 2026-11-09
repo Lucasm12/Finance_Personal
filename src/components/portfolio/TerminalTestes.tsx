@@ -29,8 +29,7 @@ const FIM = INICIO_ITENS + COMPETENCIAS.length * POR_ITEM + 2
 
 /**
  * Terminal inspirado no Cypress: se digita sozinho uma vez ao abrir a página (e de novo no botão "rodar").
- * Com "reduzir movimento", já aparece completo. A última linha ("· ilustração") deixa claro que apresenta
- * competências, não resultados de testes reais.
+ * Com "reduzir movimento", já aparece completo.
  */
 export function TerminalTestes({ className }: { className?: string }) {
   const [reduzido] = useState(movimentoReduzido)
@@ -112,11 +111,6 @@ export function TerminalTestes({ className }: { className?: string }) {
                 )
               })}
             </ul>
-
-            <p className={cn('mt-3', !terminou && 'invisible')}>
-              <span className="text-emerald-400">{COMPETENCIAS.length} competências</span>
-              <span className="text-white/60"> · ilustração</span>
-            </p>
           </div>
         </div>
       </div>

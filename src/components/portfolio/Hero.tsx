@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { ArrowDownIcon, CheckIcon, ChevronsDownIcon, GraduationCapIcon, MailIcon, PresentationIcon } from 'lucide-react'
+import { ArrowDownIcon, CheckIcon, ChevronsDownIcon, MailIcon } from 'lucide-react'
 
 import { FOCO, IconeGitHub, IconeInstagram, IconeLinkedIn, IconeWhatsApp, movimentoReduzido } from '@/components/portfolio/Comum'
 import { TerminalTestes } from '@/components/portfolio/TerminalTestes'
@@ -14,8 +14,6 @@ const REDES = [
   { rotulo: 'E-mail', href: `mailto:${PERFIL.email}`, icone: MailIcon, externo: false },
   { rotulo: 'WhatsApp', href: linkWhatsApp(PERFIL.telefone), icone: IconeWhatsApp, externo: true },
 ]
-
-const ICONES_DIFERENCIAIS = [PresentationIcon, GraduationCapIcon]
 
 /**
  * Selos que flutuam em volta do terminal (decorativos; as mesmas competências estão no texto).
@@ -114,18 +112,6 @@ export function Hero() {
           <p style={atraso(340)} className="pf-subir mt-5 max-w-xl text-base text-pretty text-white/75 sm:text-lg">
             {PERFIL.resumoCurto}
           </p>
-
-          <ul style={atraso(420)} aria-label="Diferenciais" className="pf-subir mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">
-            {PERFIL.diferenciais.map((diferencial, i) => {
-              const Icone = ICONES_DIFERENCIAIS[i] ?? GraduationCapIcon
-              return (
-                <li key={diferencial} className="flex items-center gap-2">
-                  <Icone aria-hidden className="size-4 shrink-0 text-emerald-300" />
-                  {diferencial}
-                </li>
-              )
-            })}
-          </ul>
 
           <div style={atraso(480)} className="pf-subir mt-8 flex flex-wrap items-center gap-3">
             {/* anel de luz girando: fica num invólucro, atrás do botão (o botão é branco) */}
